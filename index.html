@@ -570,12 +570,50 @@ function caseValue(cIdx, it){
   return cm+specialBonus;
 }
 
-// Optimise l'ordre des items pour placer les lettres améliorées sur les meilleures cases
-// RÈGLE : on ne change pas l'ordre des lettres du mot — on choisit seulement
-// quelle copie d'une lettre (améliorée ou normale) va à chaque position du mot
-// Cette fonction retourne les items dans l'ordre du mot, sans réorganisation
+// Pour chaque position du mot, si plusieurs copies d'une lettre sont disponibles,
+// assigner la meilleure (gras > italic > under > yellow > normal) aux meilleures cases.
+// L'ordre des lettres du mot est TOUJOURS respecté.
 function optimizeItemOrder(items){
-  return items; // L'optimisation de l'assignation se fait dans doCalc
+  const n=items.length;
+  // Regrouper les items par caractère
+  const byChar={};
+  items.forEach((it,i)=>{
+    const c=it.char;
+    if(!byChar[c]) byChar[c]=[];
+    byChar[c].push({it,origIdx:i});
+  });
+
+  // Valeur d'un état (plus haut = meilleur à placer sur une bonne case)
+  const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
+
+  // Valeur d'une case (cases spéciales en priorité, puis multi italique)
+  const caseVal=(cIdx)=>{
+    let v=(ibonus[cIdx]||1);
+    if(cIdx===9) v+=100;
+    else if(cIdx===7) v+=20;
+    else if(cIdx===5) v+=10;
+    return v;
+  };
+
+  const result=new Array(n);
+
+  // Pour chaque caractère, trier les positions par valeur de case (desc)
+  // et assigner les copies les plus améliorées aux meilleures cases
+  for(const c of Object.keys(byChar)){
+    const group=byChar[c];
+    if(group.length===1){
+      result[group[0].origIdx]=group[0].it;
+      continue;
+    }
+    // Positions dans le mot pour ce caractère, triées par valeur de case desc
+    const positions=group.map(x=>x.origIdx).sort((a,b)=>caseVal(curCase+b)-caseVal(curCase+a));
+    // Copies triées par état desc (meilleure en premier)
+    const copies=[...group].sort((a,b)=>(stateVal[b.it.state]||0)-(stateVal[a.it.state]||0));
+    // Assigner la meilleure copie à la meilleure case
+    copies.forEach((x,i)=>{ result[positions[i]]=x.it; });
+  }
+
+  return result;
 }
 
 function calcScore(word, items){
