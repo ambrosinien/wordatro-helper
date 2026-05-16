@@ -30,7 +30,7 @@
     .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
     .tab-panel{display:none !important;}
     #tab-finder.active{display:grid !important;grid-template-columns:330px 1fr;min-height:calc(100vh - 108px);}
-    #tab-calc.active{display:grid !important;grid-template-columns:480px 1fr;min-height:calc(100vh - 108px);}
+    #tab-calc.active{display:grid !important;grid-template-columns:360px 1fr;min-height:calc(100vh - 108px);}
     #tab-finder,#tab-calc{width:100%;}
 
     /* LAYOUT */
@@ -127,16 +127,16 @@
 
     /* GAMEBAR */
     .gamebar{display:flex;gap:3px;flex-wrap:wrap;}
-    .gc{width:42px;height:44px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
+    .gc{width:32px;height:36px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
     .gc:hover{border-color:var(--border2);}
     .gc.cur{border-color:var(--accent);background:#1a2400;}
     .gc.sp5{border-color:#2a6a00;background:#0f2000;}
     .gc.sp7{border-color:#6a5a00;background:#221a00;}
     .gc.sp9{border-color:#005a6a;background:#001820;}
-    .gc .gn{font-size:.42rem;color:var(--muted);font-family:'Unbounded',sans-serif;}
-    .gc .gm{font-size:.6rem;font-weight:700;color:var(--text);}
+    .gc .gn{font-size:.38rem;color:var(--muted);font-family:'Unbounded',sans-serif;}
+    .gc .gm{font-size:.55rem;font-weight:700;color:var(--text);}
     .gc.cur .gm{color:var(--accent);}
-    .gc .ge{font-size:.38rem;margin-top:1px;}
+    .gc .ge{font-size:.35rem;}
 
     .irow{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;}
     .ic{width:34px;height:20px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:.5rem;color:var(--muted);cursor:pointer;transition:all .12s;font-family:'Unbounded',sans-serif;}
@@ -155,13 +155,13 @@
     .bitem.on .bname{color:var(--accent2);}
 
     /* CALC RESULTS */
-    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.35rem .6rem;margin-bottom:3px;cursor:default;transition:border-color .15s;}
+    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:.3rem .6rem;margin-bottom:2px;cursor:pointer;transition:border-color .15s;}
     .wcard:hover{border-color:var(--border2);}
-    .wctop{display:flex;align-items:baseline;gap:.4rem;margin-bottom:.1rem;}
+    .wctop{display:flex;align-items:baseline;gap:.3rem;margin-bottom:.05rem;}
     .wcw{font-family:'Unbounded',sans-serif;font-size:.8rem;font-weight:900;color:var(--text);}
     .wcl{font-size:.55rem;color:var(--muted);}
     .wcs{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;color:var(--accent);margin-left:auto;}
-    .wcd{font-size:.58rem;color:var(--muted);line-height:1.5;}
+    .wcd{font-size:.55rem;color:var(--muted);line-height:1.3;}
     .wcd span{color:var(--text);}
     .wctrace{font-size:.47rem;color:#9090a8;margin-top:3px;line-height:1.5;}
 
@@ -193,7 +193,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.0</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.1</div>
 </header>
 
 <div class="tabs">
@@ -861,39 +861,41 @@ function doCalc(){
       const mainExclam=bestVariant.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> ! ${bestVariant.exclPos}</span>`:'';
 
       card.innerHTML=`
-        <div class="wctop" style="cursor:${hasVariants?'pointer':'default'}">
+        <div class="wctop" style="cursor:pointer">
           <span class="wcw">${displayWord}</span>
-          <span class="wcl">${displayWord.length}L → c${bestVariant.lastCase||r.lastCase}</span>
+          <span class="wcl">${displayWord.length}L→c${bestVariant.lastCase||r.lastCase}</span>
+          <span style="flex:1"></span>
           <span class="wcs">${mainScore.toLocaleString('fr-FR')}</span>
           ${bttwNote}
         </div>
-        <div class="wcd"><span>${mainPts}</span> pts × <span>${mainMulti}</span> multi${mainSpec}${mainExclam}${variantBadge}</div>
-        <div class="wctrace">${mainTrace}</div>
-        ${hasVariants?`<div class="wvariants" style="display:none;margin-top:.5rem;border-top:1px solid var(--border);padding-top:.5rem;"></div>`:''}
+        <div class="wcd"><span>${mainPts}</span>pts × <span>${mainMulti}</span>multi${mainSpec}${mainExclam}${variantBadge}</div>
+        <div class="wvariants" style="display:none;margin-top:.4rem;border-top:1px solid var(--border);padding-top:.4rem;"></div>
       `;
 
       // Clic pour afficher les variantes
-      if(hasVariants){
-        card.querySelector('.wctop').addEventListener('click',()=>{
-          const vDiv=card.querySelector('.wvariants');
-          if(vDiv.style.display==='none'){
-            vDiv.style.display='block';
-            vDiv.innerHTML=variants.map((v,i)=>`
-              <div style="padding:.2rem 0;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap;">
-                <span style="font-size:.58rem;color:var(--muted);">#${i+1}</span>
-                <span style="font-family:'Unbounded',sans-serif;font-size:.65rem;font-weight:700;color:${i===0?'var(--accent)':'var(--text)'};">${v.score.toLocaleString('fr-FR')}</span>
-                <span style="font-size:.55rem;color:var(--muted);">${v.pts}pts × ${v.multi}m</span>
-                <span style="font-size:.55rem;color:var(--italic-c);">${v.label}</span>
-                ${v.exclPos?`<span style="font-size:.5rem;color:var(--special-c);">! ${v.exclPos}</span>`:''}
-                ${v.specialHit?`<span style="font-size:.5rem;color:var(--teal);">${SPEC_LBL[v.specialHit]}</span>`:''}
-                <div style="font-size:.45rem;color:#9090a8;width:100%;margin-top:2px;">${v.trace}</div>
+      // Clic sur la carte : afficher trace + variantes
+      card.addEventListener('click',()=>{
+        const vDiv=card.querySelector('.wvariants');
+        if(vDiv.style.display==='none'){
+          vDiv.style.display='block';
+          const varHTML=hasVariants?variants.map((v,i)=>`
+            <div style="padding:.2rem 0;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap;">
+                <span style="font-size:.55rem;color:var(--muted);">#${i+1}</span>
+                <span style="font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;color:${i===0?'var(--accent)':'var(--text)'};">${v.score.toLocaleString('fr-FR')}</span>
+                <span style="font-size:.52rem;color:var(--muted);">${v.pts}pts × ${v.multi}m</span>
+                <span style="font-size:.52rem;color:var(--italic-c);">${v.label}</span>
+                ${v.exclPos?`<span style="font-size:.48rem;color:var(--special-c);">! ${v.exclPos}</span>`:''}
+                ${v.specialHit?`<span style="font-size:.48rem;color:var(--teal);">${SPEC_LBL[v.specialHit]}</span>`:''}
               </div>
-            `).join('');
-          } else {
-            vDiv.style.display='none';
-          }
-        });
-      }
+              <div style="font-size:.44rem;color:#9090a8;margin-top:1px;">${v.trace}</div>
+            </div>
+          `).join(''):`<div style="font-size:.44rem;color:#9090a8;">${mainTrace}</div>`;
+          vDiv.innerHTML=varHTML;
+        } else {
+          vDiv.style.display='none';
+        }
+      });
 
       res.appendChild(card);
     }
