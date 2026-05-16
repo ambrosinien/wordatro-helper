@@ -571,40 +571,11 @@ function caseValue(cIdx, it){
 }
 
 // Optimise l'ordre des items pour placer les lettres améliorées sur les meilleures cases
+// RÈGLE : on ne change pas l'ordre des lettres du mot — on choisit seulement
+// quelle copie d'une lettre (améliorée ou normale) va à chaque position du mot
+// Cette fonction retourne les items dans l'ordre du mot, sans réorganisation
 function optimizeItemOrder(items){
-  const n=items.length;
-  // Séparer lettres améliorées et normales
-  const improved=items.map((it,i)=>({it,i})).filter(x=>!['normal','joker','special'].includes(x.it.state));
-  if(improved.length===0) return items; // rien à optimiser
-
-  // Calculer la valeur de chaque case pour ce mot
-  const caseVals=[];
-  for(let i=0;i<n;i++) caseVals.push({pos:i,cIdx:curCase+i,val:caseValue(curCase+i,{char:'X',state:'normal',pts:1})});
-
-  // Trier les cases par valeur décroissante
-  const sortedCases=[...caseVals].sort((a,b)=>b.val-a.val);
-
-  // Assigner les lettres améliorées aux meilleures cases
-  const result=[...items];
-  const improvedItems=improved.map(x=>x.it);
-  const improvedPositions=improved.map(x=>x.i);
-  const bestCasePositions=sortedCases.slice(0,improvedItems.length).map(x=>x.pos).sort((a,b)=>a-b);
-
-  // Replacer les lettres améliorées sur les meilleures cases
-  // en gardant l'ordre relatif des lettres améliorées
-  improvedItems.sort((a,b)=>{
-    // Les gras en premier (plus de valeur)
-    const stateRank={bold:0,under:1,italic:2,yellow:3,special:4};
-    return (stateRank[a.state]||9)-(stateRank[b.state]||9);
-  });
-  bestCasePositions.forEach((pos,idx)=>{ result[pos]=improvedItems[idx]; });
-
-  // Replacer les lettres normales dans les cases restantes
-  const normalItems=items.filter((it,i)=>!improvedPositions.includes(i));
-  const remainingPos=Array.from({length:n},(_,i)=>i).filter(i=>!bestCasePositions.includes(i)).sort((a,b)=>a-b);
-  remainingPos.forEach((pos,idx)=>{ result[pos]=normalItems[idx]; });
-
-  return result;
+  return items; // L'optimisation de l'assignation se fait dans doCalc
 }
 
 function calcScore(word, items){
@@ -636,11 +607,11 @@ function calcScore(word, items){
     if(isBold) cm+=cm*xbFactor;
     cumMulti+=cm;
 
-    // Souligné : ×underF sur le cumul multi après ajout
+    // Souligné : ×underF sur le cumul multi après ajout de cette case
     if(it.state==='under'){
       const before=cumMulti;
       cumMulti=Math.floor(cumMulti*underF);
-      trace.push(`${it.char}[c${cIdx}+${cm}×${underF}:${before}→${cumMulti}]`);
+      trace.push(`${it.char}[c${cIdx}+${cm}→${before}×${underF}→${cumMulti}]`);
     } else {
       trace.push(`${it.char}[c${cIdx}+${cm}→${cumMulti}]`);
     }
