@@ -29,7 +29,9 @@
     .tab:hover{color:var(--text);}
     .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
     .tab-panel{display:none;}
-    .tab-panel.active{display:flex;}
+    .tab-panel.active{display:block;}
+    .tab-panel.active.layout{display:grid;}
+    .tab-panel.active.layout2{display:grid;}
 
     /* LAYOUT */
     .layout{display:grid;grid-template-columns:330px 1fr;min-height:calc(100vh - 108px);}
@@ -316,7 +318,7 @@ let WORDS=[],WBL={},loaded=false;
 const activeLens=new Set(LENS);
 let hand=[];          // [{char,pts,state}]
 const curCase=1;      // toujours 1, fixe
-let ibonus={};        // {caseIdx: multiBonus}
+let ibonus=Object.fromEntries(Array.from({length:10},(_,i)=>[i+1,1])); // multi par case, 1 par défaut
 const activeBon=new Set();
 
 const BONUSES=[
@@ -513,7 +515,7 @@ function buildGamebar(){
   const gb=document.getElementById('gb');
   gb.innerHTML='';
   for(let i=1;i<=NCASES;i++){
-    const ib=ibonus[i]||0;
+    const ib=ibonus[i]||1;
     const c=document.createElement('div');
     let cls='gc';
     if(i===5)cls+=' sp5';
@@ -523,11 +525,11 @@ function buildGamebar(){
     c.innerHTML=`
       <span class="gn">${i}</span>
       <span class="ge">${SPEC[i]||''}</span>
-      <span class="gm">${ib>0?'+'+ib:'·'}</span>
+      <span class="gm">+${ib}</span>
     `;
     c.title=`Case ${i}${SPEC[i]?' — case spéciale':''} — multi accumulé: +${ib} (clic gauche +1, clic droit −1)`;
-    c.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||0)+1;buildGamebar();});
-    c.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||0)-1);buildGamebar();});
+    c.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||1)+1;buildGamebar();});
+    c.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||1)-1);buildGamebar();});
     gb.appendChild(c);
   }
 }
@@ -558,8 +560,7 @@ function buildBonusGrid(){
 // Valeur d'une case pour une lettre donnée (pour optimiser le placement)
 function caseValue(cIdx, it){
   const xbFactor=activeBon.has('extrabold')?2:1;
-  let cm=1;
-  if(cIdx>=1&&cIdx<=NCASES) cm+=(ibonus[cIdx]||0);
+  let cm=(cIdx>=1&&cIdx<=NCASES)?(ibonus[cIdx]||1):1;
   if(activeBon.has('boost')) cm+=5;
   if(activeBon.has('mult')&&'MULT'.includes(it.char)) cm+=4;
   if(it.state==='bold') cm+=cm*xbFactor;
@@ -630,8 +631,7 @@ function calcScore(word, items){
     cumPts+=ptsAdd;
 
     // Multi de la case
-    let cm=1;
-    if(cIdx>=1&&cIdx<=NCASES) cm+=(ibonus[cIdx]||0); // multi permanent de la case
+    let cm=(cIdx>=1&&cIdx<=NCASES)?(ibonus[cIdx]||1):1; // multi permanent de la case
     if(activeBon.has('boost')) cm+=5;
     if(activeBon.has('mult')&&'MULT'.includes(it.char)) cm+=4;
     if(isBold) cm+=cm*xbFactor;
