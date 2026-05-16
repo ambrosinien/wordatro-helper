@@ -36,6 +36,10 @@
     /* LAYOUT */
     @media(max-width:800px){#tab-finder.active,#tab-calc.active{grid-template-columns:1fr;}}
     .pl{border-right:1px solid var(--border);padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;max-height:calc(100vh - 108px);position:sticky;top:0;}
+    #tab-calc .pl{overflow-y:hidden;padding:0;}
+    .calc-pl-top{padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;flex-shrink:0;}
+    .calc-pl-bonus{flex:1;overflow-y:auto;padding:0 1.2rem;border-top:1px solid var(--border);}
+    .calc-pl-bottom{padding:.8rem 1.2rem;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);}
     .pr{padding:1.2rem;overflow-y:auto;max-height:calc(100vh - 108px);}
 
     .stitle{font-family:'Unbounded',sans-serif;font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;}
@@ -193,7 +197,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.4</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.8</div>
 </header>
 
 <div class="tabs">
@@ -251,6 +255,7 @@
 <!-- ════════════ TAB 2 : CALCULATEUR ════════════ -->
 <div class="tab-panel" id="tab-calc">
   <div class="pl">
+    <div class="calc-pl-top">
 
     <!-- MAIN -->
     <div>
@@ -284,33 +289,26 @@
       </div>
     </div>
 
-    <!-- BONUS -->
-    <div>
-      <div class="stitle">Bonus actifs</div>
+    </div><!-- fin calc-pl-top -->
+    <div class="calc-pl-bonus">
+      <div class="stitle" style="padding:.6rem 0 .4rem;">Bonus actifs</div>
       <div class="bgrid" id="bg"></div>
-    </div>
+    </div><!-- fin calc-pl-bonus -->
+    <div class="calc-pl-bottom">
 
-    <!-- CONTEXTE MOT PRÉCÉDENT -->
-    <div>
-      <div class="stitle">Contexte mot précédent</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <div style="display:flex;flex-direction:column;gap:3px;">
-          <label style="font-size:.5rem;color:var(--muted);">1ère lettre</label>
-          <input id="prevFirst" type="text" maxlength="1" placeholder="A"
-            style="width:40px;background:var(--surface2);border:1.5px solid var(--border);border-radius:3px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:.85rem;font-weight:700;text-align:center;padding:.3rem;outline:none;text-transform:uppercase;"
-          />
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:.6rem;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:.45rem;color:var(--muted);">1ère lettre préc.</span>
+          <input id="prevFirst" type="text" maxlength="1" placeholder="A" style="width:38px;background:var(--surface2);border:1.5px solid var(--border);border-radius:3px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:.85rem;font-weight:700;text-align:center;padding:.3rem;outline:none;text-transform:uppercase;"/>
         </div>
-        <div style="display:flex;flex-direction:column;gap:3px;">
-          <label style="font-size:.5rem;color:var(--muted);">Longueur</label>
-          <input id="prevLen" type="number" min="0" max="20" value="0" placeholder="0"
-            style="width:50px;background:var(--surface2);border:1.5px solid var(--border);border-radius:3px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:.85rem;font-weight:700;text-align:center;padding:.3rem;outline:none;"
-          />
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:.45rem;color:var(--muted);">Longueur préc.</span>
+          <input id="prevLen" type="number" min="0" max="20" value="0" style="width:48px;background:var(--surface2);border:1.5px solid var(--border);border-radius:3px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:.85rem;font-weight:700;text-align:center;padding:.3rem;outline:none;"/>
         </div>
-        <div style="font-size:.5rem;color:var(--muted);line-height:1.4;">Utilisé pour<br>Déjà Vu, Jumeaux, Yo-yo</div>
+        <span style="font-size:.45rem;color:var(--muted);line-height:1.4;">Déjà Vu,<br>Jumeaux, Yo-yo</span>
       </div>
-    </div>
-
-    <button class="sbtn-calc" id="csrch">Calculer les meilleurs mots →</button>
+      <button class="sbtn-calc" id="csrch">Calculer les meilleurs mots →</button>
+    </div><!-- fin calc-pl-bottom -->
   </div>
 
   <div class="pr" id="cr">
@@ -341,44 +339,44 @@ let ibonus=Object.fromEntries(Array.from({length:10},(_,i)=>[i+1,1])); // multi 
 const activeBon=new Set();
 
 const BONUSES=[
-  // ── POINTS ──
-  {id:'consonant',  name:'Consonne',        type:'check',   desc:'+3 pts sur toutes les consonnes (immédiat).'},
-  {id:'vowel',      name:'Voyelle',         type:'check',   desc:'+2 pts sur toutes les voyelles (immédiat).'},
-  {id:'longword',   name:'Mot Long',        type:'check',   desc:'+15 pts pour tout mot de 5 lettres ou plus.'},
-  {id:'eight',      name:'Huit',            type:'check',   desc:'×1.5 sur les points pour les mots de 8 lettres exactement.'},
-  {id:'ppoint',     name:'P.O.I.N.T.',      type:'check',   desc:'+7 pts par lettre P/O/I/N/T déclenchée.'},
-  {id:'triple',     name:'Triple',          type:'check',   desc:'Toutes les 3 lettres déclenchées, la 3ème gagne +3 pts.'},
-  {id:'dejavu',     name:'Déjà Vu',         type:'counter', desc:'+N pts. +5 si même 1ère lettre que le mot précédent.', val:5},
-  {id:'specimprove',name:'Amélio. Spé.',    type:'counter', desc:'+N pts. +1 par lettre verte, +2 par jaune dans le mot.', val:5},
-  {id:'stockex',    name:'Stock Exchange',  type:'counter', desc:'+N pts (évolue selon relances).', val:5},
-  {id:'twins',      name:'Jumeaux',         type:'counter', desc:'+N pts. +5 si même longueur que le mot précédent.', val:0},
-  // ── MULTIPLICATEURS ──
-  {id:'boost',      name:'Boost',           type:'check',   desc:'+5 multi permanents sur tous les mots.'},
-  {id:'mult',       name:'M.U.L.T.',        type:'check',   desc:'+4 multi par lettre M/U/L/T dans le mot.'},
-  {id:'xconsonant', name:'× Consonne',      type:'check',   desc:'+1 multi par consonne déclenchée dans le mot.'},
-  {id:'xvowel',     name:'× Voyelle',       type:'check',   desc:'+1 multi par voyelle déclenchée dans le mot.'},
-  {id:'shortword',  name:'Mot Court',       type:'check',   desc:'×2 multi pour les mots de 5 lettres ou moins.'},
-  {id:'square',     name:'Carré',           type:'check',   desc:'×3 multi. Réduit de moitié si le mot dépasse 4 lettres.'},
-  {id:'six',        name:'Six',             type:'check',   desc:'+3 multi sur la 6ème case si le mot a exactement 6 lettres.'},
-  {id:'horizontal', name:'Horizontal',      type:'check',   desc:'Lettres italiques : +5 multi sur leur case (au lieu de +3).'},
-  {id:'stock',      name:'Stock',           type:'check',   desc:'+N multi = valeur de la lettre la moins chère en main (auto).'},
-  {id:'saving',     name:'Économie',        type:'counter', desc:'+N multi = nombre de relances restantes (à saisir).', val:0},
-  {id:'served',     name:'Servi',           type:'counter', desc:'+N multi (valeur actuelle). +2 par mot joué.', val:2},
-  {id:'yoyo',       name:'Yo-yo',           type:'counter', desc:'+N multi de base + différence de longueur avec le mot précédent.', val:1},
-  {id:'zorro',      name:'Zorro',           type:'counter', desc:'+N multi (valeur actuelle). +10 quand un Z est pioché.', val:2},
-  {id:'cashmachine',name:'Cash Machine',    type:'counter', desc:'+N multi (valeur actuelle). +2 par verte relancée, +4 par jaune.', val:2},
-  {id:'perec',      name:'Perec',           type:'check',   desc:'×3 multi. Détruit si vous jouez un E.'},
-  // ── LETTRES AMÉLIORÉES ──
-  {id:'extrabold',  name:'Extra Gras',      type:'check',   desc:'Les lettres en gras déclenchent leurs effets 2 fois.'},
-  {id:'highlighted',name:'Souligné+',       type:'check',   desc:'Souligné ajoute la TOTALITÉ du cumul multi (×2 au lieu de ×1.5).'},
-  {id:'bttw',       name:'Dos au Mur',      type:'check',   desc:'×2 pts ET ×2 multi la 1ère fois que l'énergie tombe à 0.'},
-  // ── INFO SEULEMENT ──
-  {id:'four',       name:'Quatre',          type:'check',   desc:'Mot 4L → +1 lettre verte +1 jaune (pas d'effet score direct).'},
-  {id:'nrg',        name:'N.R.G.',          type:'check',   desc:'+1 énergie tous les 5 N/R/G (pas d'effet score direct).'},
-  {id:'battery',    name:'Batterie',        type:'check',   desc:'+1 énergie en fin de round (pas d'effet score direct).'},
-  // ── MIMIC ──
-  {id:'mimic',      name:'Mimic',           type:'mimic',   desc:'Copie un autre bonus — ce bonus est appliqué deux fois.'},
+  // POINTS
+  {id:'consonant',  name:'Consonne',       type:'check',   desc:'+3 pts sur toutes les consonnes (immédiat).'},
+  {id:'vowel',      name:'Voyelle',        type:'check',   desc:'+2 pts sur toutes les voyelles (immédiat).'},
+  {id:'longword',   name:'Mot Long',       type:'check',   desc:'+15 pts pour tout mot de 5 lettres ou plus.'},
+  {id:'eight',      name:'Huit',           type:'check',   desc:'×1.5 sur les points pour les mots de 8 lettres exactement.'},
+  {id:'ppoint',     name:'P.O.I.N.T.',     type:'check',   desc:'+7 pts par lettre P/O/I/N/T déclenchée.'},
+  {id:'triple',     name:'Triple',         type:'check',   desc:'Toutes les 3 lettres déclenchées, la 3ème gagne +3 pts.'},
+  {id:'dejavu',     name:'Déjà Vu',        type:'counter', desc:'+N pts. +5 si même 1ère lettre que le mot précédent.', val:5},
+  {id:'specimprove',name:'Amélio. Spé.',   type:'counter', desc:'+N pts. +1 par lettre verte, +2 par jaune dans le mot.', val:5},
+  {id:'stockex',    name:'Stock Exchange', type:'counter', desc:'+N pts (évolue selon relances).', val:5},
+  {id:'twins',      name:'Jumeaux',        type:'counter', desc:'+N pts. +5 si même longueur que le mot précédent.', val:0},
+  // MULTIPLICATEURS
+  {id:'boost',      name:'Boost',          type:'check',   desc:'+5 multi permanents sur tous les mots.'},
+  {id:'mult',       name:'M.U.L.T.',       type:'check',   desc:'+4 multi par lettre M/U/L/T dans le mot.'},
+  {id:'xconsonant', name:'× Consonne',     type:'check',   desc:'+1 multi par consonne déclenchée dans le mot.'},
+  {id:'xvowel',     name:'× Voyelle',      type:'check',   desc:'+1 multi par voyelle déclenchée dans le mot.'},
+  {id:'shortword',  name:'Mot Court',      type:'check',   desc:'×2 multi pour les mots de 5 lettres ou moins.'},
+  {id:'square',     name:'Carré',          type:'check',   desc:'×3 multi. Réduit de moitié si le mot dépasse 4 lettres.'},
+  {id:'six',        name:'Six',            type:'check',   desc:'+3 multi sur la 6ème case si le mot a exactement 6 lettres.'},
+  {id:'horizontal', name:'Horizontal',     type:'check',   desc:'Lettres italiques : +5 multi sur leur case (au lieu de +3).'},
+  {id:'stock',      name:'Stock',          type:'check',   desc:'+N multi = valeur de la lettre la moins chère en main (auto).'},
+  {id:'saving',     name:'Économie',       type:'counter', desc:'+N multi = nombre de relances restantes.', val:0},
+  {id:'served',     name:'Servi',          type:'counter', desc:'+N multi. +2 par mot joué.', val:2},
+  {id:'yoyo',       name:'Yo-yo',          type:'counter', desc:'+N multi + différence de longueur avec le mot précédent.', val:1},
+  {id:'zorro',      name:'Zorro',          type:'counter', desc:'+N multi. +10 quand un Z est pioché.', val:2},
+  {id:'cashmachine',name:'Cash Machine',   type:'counter', desc:'+N multi. +2 par verte relancée, +4 par jaune.', val:2},
+  {id:'perec',      name:'Perec',          type:'check',   desc:'×3 multi. Détruit si vous jouez un E.'},
+  {id:'mimic',      name:'Mimic',          type:'mimic',   desc:'Copie un autre bonus — appliqué deux fois.'},
+  // LETTRES AMELIOREES
+  {id:'extrabold',  name:'Extra Gras',     type:'check',   desc:'Les lettres en gras déclenchent leurs effets 2 fois.'},
+  {id:'highlighted',name:'Souligné+',      type:'check',   desc:'Souligné ajoute la TOTALITÉ du cumul multi (×2).'},
+  {id:'bttw',       name:'Dos au Mur',     type:'check',   desc:'×2 pts ET ×2 multi quand énergie tombe à 0.'},
+  // INFO SEULEMENT
+  {id:'four',       name:'Quatre',         type:'check',   desc:'Mot 4L → +1 lettre verte +1 jaune (pas d\'effet score direct).'},
+  {id:'nrg',        name:'N.R.G.',         type:'check',   desc:'+1 énergie tous les 5 N/R/G (pas d\'effet score direct).'},
+  {id:'battery',    name:'Batterie',       type:'check',   desc:'+1 énergie en fin de round (pas d\'effet score direct).'},
 ];
+
 
 // ══ INIT DICT ══
 function initDict(){
@@ -548,7 +546,7 @@ function renderHand(){
 
 document.getElementById('abtn').addEventListener('click',()=>{
   const v=document.getElementById('ai').value.toUpperCase().replace(/[^A-Z*!]/g,'');
-  for(const c of v)hand.push({char:c,pts:c==='*'?0:c==='!'?10:(PTS0[c]||1),state:c==='*'?'joker':c==='!'?'special':'normal'});
+  for(const c of v)hand.push({char:c,pts:c==='*'?10:c==='!'?10:(PTS0[c]||1),state:c==='*'?'joker':c==='!'?'special':'normal'});
   document.getElementById('ai').value='';renderHand();
 });
 document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^A-Za-z*!]/g,'').toUpperCase();});
@@ -580,182 +578,108 @@ function buildGamebar(){
 }
 
 // ── BONUS ──
-// Stocke les valeurs des bonus counter
 const bonusVals={};
-BONUSES.filter(b=>b.type==='counter').forEach(b=>bonusVals[b.id]=b.val||0);
+BONUSES.filter(b=>b.type==='counter').forEach(b=>{bonusVals[b.id]=b.val||0;});
 
 function buildBonusGrid(){
   const g=document.getElementById('bg');
   g.innerHTML='';
-
-  // Grouper par section
   const sections=[
-    {label:'Points',  ids:['consonant','vowel','longword','eight','ppoint','triple','dejavu','specimprove','stockex','twins']},
-    {label:'Multiplicateurs', ids:['boost','mult','xconsonant','xvowel','shortword','square','six','horizontal','stock','saving','served','yoyo','zorro','cashmachine','perec']},
-    {label:'Lettres améliorées', ids:['extrabold','highlighted','bttw']},
+    {label:'Points',         ids:['consonant','vowel','longword','eight','ppoint','triple','dejavu','specimprove','stockex','twins']},
+    {label:'Multiplicateurs',ids:['boost','mult','xconsonant','xvowel','shortword','square','six','horizontal','stock','saving','served','yoyo','zorro','cashmachine','perec','mimic']},
+    {label:'Lettres',        ids:['extrabold','highlighted','bttw']},
     {label:'Info seulement', ids:['four','nrg','battery']},
-  {label:'Mimic', ids:['mimic']},
   ];
-
   for(const sec of sections){
-    const secDiv=document.createElement('div');
-    secDiv.innerHTML=`<div style="font-size:.45rem;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;padding:.3rem 0 .2rem;border-bottom:1px solid var(--border);margin-bottom:.3rem;">${sec.label}</div>`;
-    g.appendChild(secDiv);
-
+    const sd=document.createElement('div');
+    sd.innerHTML=`<div style="font-size:.45rem;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;padding:.3rem 0 .2rem;border-bottom:1px solid var(--border);margin-bottom:.3rem;">${sec.label}</div>`;
+    g.appendChild(sd);
     for(const id of sec.ids){
       const b=BONUSES.find(x=>x.id===id);
       if(!b) continue;
-      const item=document.createElement('div');item.className='bitem';
-
+      const item=document.createElement('div');
+      item.className='bitem';
       if(b.type==='mimic'){
-        // Liste des bonus actifs pouvant être copiés (excl. mimic lui-même)
-        const mimicOpts=BONUSES.filter(x=>x.id!=='mimic').map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
-        item.innerHTML=`
-          <div class="bcb"></div>
-          <div style="flex:1;">
-            <div class="bname">${b.name}</div>
-            <div class="bdesc">${b.desc}</div>
-            <select id="mimicTarget" style="margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:.6rem;padding:2px 4px;outline:none;display:none;"
-              onclick="event.stopPropagation()">
-              ${mimicOpts}
-            </select>
-          </div>
-        `;
+        const opts=BONUSES.filter(x=>x.id!=='mimic').map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+        item.innerHTML=`<div class="bcb"></div><div style="flex:1"><div class="bname">${b.name}</div><div class="bdesc">${b.desc}</div><select id="mimicTarget" style="display:none;margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:.6rem;padding:2px 4px;outline:none;" onclick="event.stopPropagation()">${opts}</select></div>`;
         item.addEventListener('click',()=>{
           if(activeBon.has(b.id))activeBon.delete(b.id);else activeBon.add(b.id);
           item.classList.toggle('on');
           item.querySelector('.bcb').textContent=activeBon.has(b.id)?'✓':'';
-          const sel=item.querySelector('#mimicTarget');
-          sel.style.display=activeBon.has(b.id)?'block':'none';
+          const sel=document.getElementById('mimicTarget');
+          if(sel)sel.style.display=activeBon.has(b.id)?'block':'none';
         });
-        g.appendChild(item);
-        continue;
       } else if(b.type==='counter'){
-        item.innerHTML=`
-          <div class="bcb"></div>
-          <div style="flex:1;">
-            <div class="bname">${b.name}</div>
-            <div class="bdesc">${b.desc}</div>
-          </div>
-          <input type="number" min="0" max="999" value="${bonusVals[b.id]||0}"
-            style="width:44px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--accent);font-family:'Unbounded',sans-serif;font-size:.65rem;font-weight:700;text-align:center;padding:2px 3px;outline:none;"
-            onclick="event.stopPropagation()"
-            oninput="bonusVals['${b.id}']=parseInt(this.value)||0"
-          />
-        `;
+        item.innerHTML=`<div class="bcb"></div><div style="flex:1"><div class="bname">${b.name}</div><div class="bdesc">${b.desc}</div></div><input type="number" min="0" max="999" value="${bonusVals[b.id]||0}" style="width:44px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--accent);font-family:'Unbounded',sans-serif;font-size:.65rem;font-weight:700;text-align:center;padding:2px;outline:none;" onclick="event.stopPropagation()" oninput="bonusVals['${b.id}']=parseInt(this.value)||0"/>`;
+        item.addEventListener('click',()=>{
+          if(activeBon.has(b.id))activeBon.delete(b.id);else activeBon.add(b.id);
+          item.classList.toggle('on');
+          item.querySelector('.bcb').textContent=activeBon.has(b.id)?'✓':'';
+        });
       } else {
         item.innerHTML=`<div class="bcb"></div><div><div class="bname">${b.name}</div><div class="bdesc">${b.desc}</div></div>`;
+        item.addEventListener('click',()=>{
+          if(activeBon.has(b.id))activeBon.delete(b.id);else activeBon.add(b.id);
+          item.classList.toggle('on');
+          item.querySelector('.bcb').textContent=activeBon.has(b.id)?'✓':'';
+        });
       }
-
-      item.addEventListener('click',()=>{
-        if(activeBon.has(b.id))activeBon.delete(b.id);else activeBon.add(b.id);
-        item.classList.toggle('on');
-        item.querySelector('.bcb').textContent=activeBon.has(b.id)?'✓':'';
-      });
       g.appendChild(item);
     }
   }
 }
 
 // ══ CALCUL DE SCORE ══
-// caseStart = curCase : la 1ère lettre du mot tombe sur la case actuelle
-// cum_pts  : 0 → +pts par lettre (gras : pts × (1+xbFactor))
-// cum_multi: 0 → +1 par case + ibonus[case] permanent + boost + mult
-//            Gras : cm doublé (ou ×3 avec Extra Bold)
-//            Souligné : cumMulti × underF après ajout
-// score = cum_pts × cum_multi
+const VOWELS='AEIOUY';
+const CONSONANTS='BCDFGHJKLMNPQRSTVWXZ';
+function getPrevFirst(){return (document.getElementById('prevFirst')?.value||'').toUpperCase();}
+function getPrevLen(){return parseInt(document.getElementById('prevLen')?.value)||0;}
 
-// Valeur d'une case pour une lettre donnée (pour optimiser le placement)
 function caseValue(cIdx, it){
   const xbFactor=activeBon.has('extrabold')?2:1;
   let cm=(cIdx>=1&&cIdx<=NCASES)?(ibonus[cIdx]||1):1;
-  if(activeBon.has('boost')) cm+=5;
-  if(activeBon.has('mult')&&'MULT'.includes(it.char)) cm+=4;
-  if(it.state==='bold') cm+=cm*xbFactor;
-  // Bonus cases spéciales
-  let specialBonus=0;
-  if(cIdx===9) specialBonus=1000;
-  else if(cIdx===7) specialBonus=100;
-  else if(cIdx===5) specialBonus=10;
-  return cm+specialBonus;
+  if(activeBon.has('boost'))cm+=5;
+  if(it.state==='bold')cm+=cm*xbFactor;
+  if(cIdx===9)cm+=100;else if(cIdx===7)cm+=20;else if(cIdx===5)cm+=10;
+  return cm;
 }
 
-// Pour chaque position du mot, si plusieurs copies d'une lettre sont disponibles,
-// assigner la meilleure (gras > italic > under > yellow > normal) aux meilleures cases.
-// L'ordre des lettres du mot est TOUJOURS respecté.
 function optimizeItemOrder(items){
   const n=items.length;
-  // Regrouper les items par caractère
   const byChar={};
-  items.forEach((it,i)=>{
-    const c=it.char;
-    if(!byChar[c]) byChar[c]=[];
-    byChar[c].push({it,origIdx:i});
-  });
-
-  // Valeur d'un état (plus haut = meilleur à placer sur une bonne case)
+  items.forEach((it,i)=>{const c=it.char;if(!byChar[c])byChar[c]=[];byChar[c].push({it,origIdx:i});});
   const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
-
-  // Valeur d'une case (cases spéciales en priorité, puis multi italique)
-  const caseVal=(cIdx)=>{
-    let v=(ibonus[cIdx]||1);
-    if(cIdx===9) v+=100;
-    else if(cIdx===7) v+=20;
-    else if(cIdx===5) v+=10;
-    return v;
-  };
-
+  const caseVal=(cIdx)=>{let v=(ibonus[cIdx]||1);if(cIdx===9)v+=100;else if(cIdx===7)v+=20;else if(cIdx===5)v+=10;return v;};
   const result=new Array(n);
-
-  // Pour chaque caractère, trier les positions par valeur de case (desc)
-  // et assigner les copies les plus améliorées aux meilleures cases
   for(const c of Object.keys(byChar)){
     const group=byChar[c];
-    if(group.length===1){
-      result[group[0].origIdx]=group[0].it;
-      continue;
-    }
-    // Positions dans le mot pour ce caractère, triées par valeur de case desc
+    if(group.length===1){result[group[0].origIdx]=group[0].it;continue;}
     const positions=group.map(x=>x.origIdx).sort((a,b)=>caseVal(curCase+b)-caseVal(curCase+a));
-    // Copies triées par état desc (meilleure en premier)
     const copies=[...group].sort((a,b)=>(stateVal[b.it.state]||0)-(stateVal[a.it.state]||0));
-    // Assigner la meilleure copie à la meilleure case
-    copies.forEach((x,i)=>{ result[positions[i]]=x.it; });
+    copies.forEach((x,i)=>{result[positions[i]]=x.it;});
   }
-
   return result;
 }
 
-// Helpers
-const VOWELS='AEIOUY';
-const CONSONANTS='BCDFGHJKLMNPQRSTVWXZ';
-
-function getPrevFirst(){ return (document.getElementById('prevFirst')?.value||'').toUpperCase(); }
-function getPrevLen(){ return parseInt(document.getElementById('prevLen')?.value)||0; }
-
 function calcScore(word, items){
   const optItems=optimizeItemOrder([...items]);
-  const n=word.length; // longueur incluant les !
-  const wordLetters=word.replace(/!/g,''); // lettres sans !
+  const n=word.length;
+  const wordLetters=word.replace(/!/g,'');
   const wordLen=wordLetters.length;
-
   const underF=activeBon.has('highlighted')?2.0:1.5;
   const xbFactor=activeBon.has('extrabold')?2:1;
-  const italicBonus=activeBon.has('horizontal')?5:3; // Horizontal : +5 au lieu de +3
+  const italicBonus=activeBon.has('horizontal')?5:3;
 
-  // Valeurs de base des lettres (modifiées par Consonne/Voyelle)
   function letterPts(it){
-    if(it.state==='joker') return 0;
+    if(it.state==='joker')return it.pts;
     let p=it.pts;
-    if(activeBon.has('consonant')&&CONSONANTS.includes(it.char)) p+=3;
-    if(activeBon.has('vowel')&&VOWELS.includes(it.char)) p+=2;
+    if(activeBon.has('consonant')&&CONSONANTS.includes(it.char))p+=3;
+    if(activeBon.has('vowel')&&VOWELS.includes(it.char))p+=2;
     return p;
   }
 
-  let cumPts=0;
-  let cumMulti=0;
+  let cumPts=0,cumMulti=0,tripleCount=0;
   const trace=[];
-  let tripleCount=0; // compteur pour Triple
 
   for(let i=0;i<n;i++){
     const cIdx=curCase+i;
@@ -765,32 +689,23 @@ function calcScore(word, items){
 
     // Points
     let basePts=isExclam?10:letterPts(it);
-
-    // P.O.I.N.T.
-    if(activeBon.has('ppoint')&&'POINT'.includes(it.char)&&!isExclam) basePts+=7;
-
-    // Triple : tous les 3 déclenchements, +3 pts sur cette lettre
+    if(activeBon.has('ppoint')&&!isExclam&&'POINT'.includes(it.char))basePts+=7;
     tripleCount++;
-    if(activeBon.has('triple')&&tripleCount%3===0) basePts+=3;
-
-    const ptsAdd=isBold ? basePts*(1+xbFactor) : basePts;
+    if(activeBon.has('triple')&&tripleCount%3===0)basePts+=3;
+    const ptsAdd=isBold?basePts*(1+xbFactor):basePts;
     cumPts+=ptsAdd;
 
-    // Multi de la case
+    // Multi
     let cm=(cIdx>=1&&cIdx<=NCASES)?(ibonus[cIdx]||1):1;
-    if(it.state==='italic') cm+=italicBonus;
-    if(activeBon.has('boost')) cm+=5;
-    if(activeBon.has('mult')&&'MULT'.includes(it.char)&&!isExclam) cm+=4;
-    if(activeBon.has('xconsonant')&&CONSONANTS.includes(it.char)&&!isExclam) cm+=1;
-    if(activeBon.has('xvowel')&&VOWELS.includes(it.char)&&!isExclam) cm+=1;
-    if(isBold) cm+=cm*xbFactor;
-
-    // Six : +3 multi sur la 6ème case si mot de 6 lettres
-    if(activeBon.has('six')&&wordLen===6&&cIdx===6) cm+=3;
-
+    if(it.state==='italic')cm+=italicBonus;
+    if(activeBon.has('boost'))cm+=5;
+    if(activeBon.has('mult')&&!isExclam&&'MULT'.includes(it.char))cm+=4;
+    if(activeBon.has('xconsonant')&&!isExclam&&CONSONANTS.includes(it.char))cm+=1;
+    if(activeBon.has('xvowel')&&!isExclam&&VOWELS.includes(it.char))cm+=1;
+    if(activeBon.has('six')&&wordLen===6&&cIdx===6)cm+=3;
+    if(isBold)cm+=cm*xbFactor;
     cumMulti+=cm;
 
-    // Souligné : ×underF sur le cumul multi après ajout
     if(it.state==='under'){
       const before=cumMulti;
       cumMulti=Math.floor(cumMulti*underF);
@@ -800,95 +715,54 @@ function calcScore(word, items){
     }
   }
 
-  // ── Bonus finaux sur les POINTS ──
-  if(activeBon.has('eight')&&wordLen===8) cumPts=Math.round(cumPts*1.5);
-  if(activeBon.has('longword')&&wordLen>=5) cumPts+=15;
-
-  // Déjà Vu
+  // Bonus finaux POINTS
+  if(activeBon.has('eight')&&wordLen===8)cumPts=Math.round(cumPts*1.5);
+  if(activeBon.has('longword')&&wordLen>=5)cumPts+=15;
   if(activeBon.has('dejavu')){
-    let dvVal=bonusVals['dejavu']||5;
-    cumPts+=dvVal;
-    if(wordLetters[0]&&getPrevFirst()===wordLetters[0]) cumPts+=5;
+    cumPts+=(bonusVals['dejavu']||5);
+    if(wordLetters[0]&&getPrevFirst()===wordLetters[0])cumPts+=5;
   }
-
-  // Jumeaux (Twins)
   if(activeBon.has('twins')){
-    let twVal=bonusVals['twins']||0;
-    cumPts+=twVal;
-    if(getPrevLen()>0&&wordLen===getPrevLen()) cumPts+=5;
+    cumPts+=(bonusVals['twins']||0);
+    if(getPrevLen()>0&&wordLen===getPrevLen())cumPts+=5;
   }
-
-  // Special Improvement
   if(activeBon.has('specimprove')){
     cumPts+=(bonusVals['specimprove']||5);
-    // +1 par lettre verte, +2 par jaune dans le mot
-    optItems.forEach(it=>{ if(it.state==='italic'||it.state==='bold'||it.state==='under') cumPts+=1; if(it.state==='yellow') cumPts+=2; });
+    optItems.forEach(it=>{if(['italic','bold','under'].includes(it.state))cumPts+=1;if(it.state==='yellow')cumPts+=2;});
   }
+  if(activeBon.has('stockex'))cumPts+=(bonusVals['stockex']||5);
 
-  // Stock Exchange
-  if(activeBon.has('stockex')) cumPts+=(bonusVals['stockex']||5);
+  // Bonus finaux MULTI
+  if(activeBon.has('shortword')&&wordLen<=5)cumMulti*=2;
+  if(activeBon.has('square')){let sq=3;if(wordLen>4)sq=Math.floor(sq/2);cumMulti*=sq;}
+  if(activeBon.has('perec')&&!wordLetters.includes('E'))cumMulti*=3;
+  if(activeBon.has('saving'))cumMulti+=(bonusVals['saving']||0);
+  if(activeBon.has('stock')){const minP=Math.min(...hand.filter(it=>it.state!=='joker'&&it.state!=='special').map(it=>it.pts));if(isFinite(minP))cumMulti+=minP;}
+  if(activeBon.has('served'))cumMulti+=(bonusVals['served']||2);
+  if(activeBon.has('yoyo')){const diff=getPrevLen()>0?Math.abs(wordLen-getPrevLen()):0;cumMulti+=(bonusVals['yoyo']||1)+diff;}
+  if(activeBon.has('zorro'))cumMulti+=(bonusVals['zorro']||2);
+  if(activeBon.has('cashmachine'))cumMulti+=(bonusVals['cashmachine']||2);
 
-  // ── Bonus finaux sur les MULTIS ──
-
-  // Short Word
-  if(activeBon.has('shortword')&&wordLen<=5) cumMulti*=2;
-
-  // Square : ×3, réduit de moitié si >4 lettres
-  if(activeBon.has('square')){
-    let sq=3; if(wordLen>4) sq=Math.floor(sq/2);
-    cumMulti*=sq;
-  }
-
-  // Perec : ×3 si pas de E
-  if(activeBon.has('perec')&&!wordLetters.includes('E')) cumMulti*=3;
-
-  // Saving
-  if(activeBon.has('saving')) cumMulti+=(bonusVals['saving']||0);
-
-  // Stock : + valeur de la lettre la moins chère en main
-  if(activeBon.has('stock')){
-    const minPts=Math.min(...hand.filter(it=>it.state!=='joker'&&it.state!=='special').map(it=>it.pts));
-    if(isFinite(minPts)) cumMulti+=minPts;
-  }
-
-  // Served
-  if(activeBon.has('served')) cumMulti+=(bonusVals['served']||2);
-
-  // Yo-yo
-  if(activeBon.has('yoyo')){
-    let yy=bonusVals['yoyo']||1;
-    const diff=getPrevLen()>0?Math.abs(wordLen-getPrevLen()):0;
-    cumMulti+=yy+diff;
-  }
-
-  // Zorro
-  if(activeBon.has('zorro')) cumMulti+=(bonusVals['zorro']||2);
-
-  // Cash Machine
-  if(activeBon.has('cashmachine')) cumMulti+=(bonusVals['cashmachine']||2);
-
-  // MIMIC : appliquer le bonus copié une 2ème fois
+  // Mimic
   if(activeBon.has('mimic')){
-    const mimicSel=document.getElementById('mimicTarget');
-    const mimicId=mimicSel?mimicSel.value:'';
+    const mimicId=(document.getElementById('mimicTarget')?.value)||'';
     if(mimicId&&activeBon.has(mimicId)){
-      // Ré-appliquer le bonus copié
-      if(mimicId==='boost') cumMulti+=5;
-      if(mimicId==='longword'&&wordLen>=5) cumPts+=15;
-      if(mimicId==='eight'&&wordLen===8) cumPts=Math.round(cumPts*1.5);
-      if(mimicId==='shortword'&&wordLen<=5) cumMulti*=2;
+      if(mimicId==='boost')cumMulti+=5;
+      if(mimicId==='longword'&&wordLen>=5)cumPts+=15;
+      if(mimicId==='eight'&&wordLen===8)cumPts=Math.round(cumPts*0.5);
+      if(mimicId==='shortword'&&wordLen<=5)cumMulti*=2;
       if(mimicId==='square'){let sq=3;if(wordLen>4)sq=Math.floor(sq/2);cumMulti*=sq;}
-      if(mimicId==='perec'&&!wordLetters.includes('E')) cumMulti*=3;
-      if(mimicId==='saving') cumMulti+=(bonusVals['saving']||0);
-      if(mimicId==='served') cumMulti+=(bonusVals['served']||2);
-      if(mimicId==='zorro') cumMulti+=(bonusVals['zorro']||2);
-      if(mimicId==='cashmachine') cumMulti+=(bonusVals['cashmachine']||2);
+      if(mimicId==='perec'&&!wordLetters.includes('E'))cumMulti*=3;
+      if(mimicId==='saving')cumMulti+=(bonusVals['saving']||0);
+      if(mimicId==='served')cumMulti+=(bonusVals['served']||2);
+      if(mimicId==='zorro')cumMulti+=(bonusVals['zorro']||2);
+      if(mimicId==='cashmachine')cumMulti+=(bonusVals['cashmachine']||2);
       if(mimicId==='yoyo'){const diff=getPrevLen()>0?Math.abs(wordLen-getPrevLen()):0;cumMulti+=(bonusVals['yoyo']||1)+diff;}
       if(mimicId==='dejavu'){cumPts+=(bonusVals['dejavu']||5);if(wordLetters[0]&&getPrevFirst()===wordLetters[0])cumPts+=5;}
       if(mimicId==='twins'){cumPts+=(bonusVals['twins']||0);if(getPrevLen()>0&&wordLen===getPrevLen())cumPts+=5;}
       if(mimicId==='stock'){const minP=Math.min(...hand.filter(it=>it.state!=='joker'&&it.state!=='special').map(it=>it.pts));if(isFinite(minP))cumMulti+=minP;}
-      if(mimicId==='specimprove') cumPts+=(bonusVals['specimprove']||5);
-      if(mimicId==='stockex') cumPts+=(bonusVals['stockex']||5);
+      if(mimicId==='specimprove')cumPts+=(bonusVals['specimprove']||5);
+      if(mimicId==='stockex')cumPts+=(bonusVals['stockex']||5);
     }
   }
 
@@ -897,17 +771,16 @@ function calcScore(word, items){
   const fp=bttw?cumPts*2:cumPts;
   const fm=bttw?cumMulti*2:cumMulti;
 
-  // Case spéciale atteinte
   const lastCase=curCase+n-1;
   const specialHit=lastCase>=9?9:lastCase>=7?7:lastCase>=5?5:0;
 
-  // Calculer les nouvelles valeurs des bonus cumulatifs après ce mot
+  // Mise à jour bonus cumulatifs après ce mot
   const bonusUpdates={};
-  if(activeBon.has('served')) bonusUpdates['served']=(bonusVals['served']||2)+2;
-  if(activeBon.has('dejavu')) bonusUpdates['dejavu']=(wordLetters[0]&&getPrevFirst()===wordLetters[0])?(bonusVals['dejavu']||5)+5:(bonusVals['dejavu']||5);
-  if(activeBon.has('twins')) bonusUpdates['twins']=(getPrevLen()>0&&wordLen===getPrevLen())?(bonusVals['twins']||0)+5:(bonusVals['twins']||0);
+  if(activeBon.has('served'))bonusUpdates['served']=(bonusVals['served']||2)+2;
+  if(activeBon.has('dejavu')&&wordLetters[0]&&getPrevFirst()===wordLetters[0])bonusUpdates['dejavu']=(bonusVals['dejavu']||5)+5;
+  if(activeBon.has('twins')&&getPrevLen()>0&&wordLen===getPrevLen())bonusUpdates['twins']=(bonusVals['twins']||0)+5;
 
-  return {pts:fp, multi:fm, score:fp*fm, trace:trace.join(' → '), lastCase, specialHit, bonusUpdates};
+  return {pts:fp,multi:fm,score:fp*fm,trace:trace.join(' → '),lastCase,specialHit,bonusUpdates};
 }
 
 // ── FIND & CALC ──
