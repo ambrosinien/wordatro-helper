@@ -99,6 +99,7 @@
     .hlc.st-bold{color:var(--bold-c);}
     .hlc.st-italic{color:var(--italic-c);font-style:italic;}
     .hlc.st-under{color:var(--under-c);text-decoration:underline;}
+    .hlc.st-yellow{color:#ffaa00;}
     .hlc.st-special{color:var(--special-c);}
     .hlc.st-joker{color:var(--teal);}
 
@@ -112,6 +113,7 @@
     .stb.on-bold{background:#2a1500;border-color:var(--bold-c);color:var(--bold-c);}
     .stb.on-italic{background:#1a1540;border-color:var(--italic-c);color:var(--italic-c);}
     .stb.on-under{background:#001a1a;border-color:var(--under-c);color:var(--under-c);}
+    .stb.on-yellow{background:#2a1800;border-color:#ffaa00;color:#ffaa00;}
     .stb.on-special{background:#2a2000;border-color:var(--special-c);color:var(--special-c);}
     .stb.on-joker{background:#001a20;border-color:var(--teal);color:var(--teal);}
 
@@ -483,14 +485,15 @@ function renderHand(){
       {k:'bold',lbl:'B',title:'Gras — effets de case ×2 (×4 avec Extra Bold)'},
       {k:'italic',lbl:'I',title:'Italique — +X multi permanent sur la case utilisée (+1 par clic)'},
       {k:'under',lbl:'U',title:'Souligné — multi cumulés ×1.5 à ce point (×2 avec Highlighted)'},
-      {k:'special',lbl:'§',title:'Lettre jaune § — à positionner librement (début/fin de mot)'},
+      {k:'yellow',lbl:'J',title:'Lettre jaune classique (A-Z) — vaut 10pts, améliore +5pts les mêmes lettres futures'},
+      {k:'special',lbl:'§',title:'§ Point exclamation — 10pts, se place librement début/fin du mot'},
       {k:'joker',lbl:'*',title:'Joker wildcard'},
     ];
     for(const s of states){
       const b=document.createElement('button');
       b.className='stb'+(it.state===s.k?' on-'+s.k:'');
       b.textContent=s.lbl;b.title=s.title;
-      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';if(s.k==='special')hand[i].char='§';renderHand();});
+      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';if(s.k==='special'){hand[i].char='§';}if(s.k==='yellow'){hand[i].pts=10;}renderHand();});
       sb.appendChild(b);
     }
     const db=document.createElement('button');db.className='delbtn';db.textContent='✕';
@@ -581,7 +584,7 @@ function caseValue(cIdx, it){
 function optimizeItemOrder(items){
   const n=items.length;
   // Séparer lettres améliorées et normales
-  const improved=items.map((it,i)=>({it,i})).filter(x=>x.it.state!=='normal'&&x.it.state!=='joker');
+  const improved=items.map((it,i)=>({it,i})).filter(x=>!['normal','joker','special'].includes(x.it.state));
   if(improved.length===0) return items; // rien à optimiser
 
   // Calculer la valeur de chaque case pour ce mot
@@ -601,7 +604,7 @@ function optimizeItemOrder(items){
   // en gardant l'ordre relatif des lettres améliorées
   improvedItems.sort((a,b)=>{
     // Les gras en premier (plus de valeur)
-    const stateRank={bold:0,under:1,italic:2,special:3};
+    const stateRank={bold:0,under:1,italic:2,yellow:3,special:4};
     return (stateRank[a.state]||9)-(stateRank[b.state]||9);
   });
   bestCasePositions.forEach((pos,idx)=>{ result[pos]=improvedItems[idx]; });
