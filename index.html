@@ -193,7 +193,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.9</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.0</div>
 </header>
 
 <div class="tabs">
@@ -742,23 +742,19 @@ function doCalc(){
         let best=r0;
         let bestPos='';
 
-        // Si on a des "!", tester début et fin pour chaque "!" disponible
+        // Tester toutes les combinaisons de ! devant/derrière
         if(hasExclam){
-          // "!" en début de mot
-          const itemsStart=[exclamItem,...usedItems];
-          const rStart=calcScore('!'+w,itemsStart);
-          if(rStart.score>best.score){best=rStart;bestPos='! en début';}
-
-          // "!" en fin de mot
-          const itemsEnd=[...usedItems,exclamItem];
-          const rEnd=calcScore(w+'!',itemsEnd);
-          if(rEnd.score>best.score){best=rEnd;bestPos='! en fin';}
-
-          // Si 2+ "!", tester début ET fin simultanément
-          if(exclamItems.length>=2){
-            const itemsBoth=[exclamItem,...usedItems,exclamItem];
-            const rBoth=calcScore('!'+w+'!',itemsBoth);
-            if(rBoth.score>best.score){best=rBoth;bestPos='! début + fin';}
+          const nExclam=exclamItems.length;
+          for(let before=0;before<=nExclam;before++){
+            const after=nExclam-before;
+            if(before===0&&after===0) continue;
+            const prefix='!'.repeat(before);
+            const suffix='!'.repeat(after);
+            const prefItems=Array(before).fill(exclamItem);
+            const sufItems=Array(after).fill(exclamItem);
+            const rEx=calcScore(prefix+w+suffix,[...prefItems,...usedItems,...sufItems]);
+            const posLabel=(before>0?before+'! début ':'')+( after>0?after+'! fin':'');
+            if(rEx.score>best.score){best=rEx;bestPos=posLabel.trim();}
           }
         }
 
@@ -802,13 +798,16 @@ function doCalc(){
         // Tester avec !
         let best=r; let bestPos='';
         if(hasExclam){
-          const rS=calcScore('!'+w,[exclamItem,...combo]);
-          if(rS.score>best.score){best=rS;bestPos='! début';}
-          const rE=calcScore(w+'!',[...combo,exclamItem]);
-          if(rE.score>best.score){best=rE;bestPos='! fin';}
-          if(exclamCount>=2){
-            const rB=calcScore('!'+w+'!',[exclamItem,...combo,exclamItem]);
-            if(rB.score>best.score){best=rB;bestPos='! début+fin';}
+          for(let before=0;before<=exclamCount;before++){
+            const after=exclamCount-before;
+            if(before===0&&after===0) continue;
+            const prefix='!'.repeat(before);
+            const suffix='!'.repeat(after);
+            const prefItems=Array(before).fill(exclamItem);
+            const sufItems=Array(after).fill(exclamItem);
+            const rEx=calcScore(prefix+w+suffix,[...prefItems,...combo,...sufItems]);
+            const posLabel=(before>0?before+'! début ':'')+( after>0?after+'! fin':'');
+            if(rEx.score>best.score){best=rEx;bestPos=posLabel.trim();}
           }
         }
         // Label des lettres améliorées utilisées
