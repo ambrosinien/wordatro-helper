@@ -266,14 +266,14 @@
         <span style="color:var(--bold-c)">■</span> Gras &nbsp;
         <span style="color:var(--italic-c);font-style:italic">I</span> Italique &nbsp;
         <span style="color:var(--under-c)">U̲</span> Souligné &nbsp;
-        <span style="color:var(--special-c)">§</span> Jaune § &nbsp;
+        <span style="color:var(--special-c)">!</span> Jaune ! &nbsp;
         <span style="color:var(--teal)">*</span> Joker
       </div>
     </div>
 
     <!-- BARRE -->
     <div>
-      <div class="stitle">Barre de jeu — cliquer sur la case actuelle</div>
+      <div class="stitle">Barre de jeu (10 cases max) — cliquer sur la case actuelle</div>
       <div class="gamebar" id="gb"></div>
       <div style="font-size:.47rem;color:var(--muted);margin-top:3px;">
         <span style="color:var(--accent)">▶</span> pos. actuelle &nbsp;
@@ -310,7 +310,7 @@
 // ══ CONSTANTS ══
 const PTS0={A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:10,L:1,M:2,N:1,O:1,P:3,Q:8,R:1,S:1,T:1,U:1,V:4,W:10,X:10,Y:10,Z:10};
 const LENS=[4,5,6,7,8,9];
-const NCASES=15;
+const NCASES=10;
 const SPEC={5:'🟢',7:'⭐',9:'⚡'};
 
 // ══ STATE ══
@@ -447,7 +447,7 @@ function renderFinder(res){
   }
 }
 
-document.getElementById('li').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*§]/g,'');});
+document.getElementById('li').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*!]/g,'');});
 document.getElementById('xcl').addEventListener('click',()=>{
   ['li','sw','ct'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('jc').value=0;
@@ -473,7 +473,7 @@ function renderHand(){
     const row=document.createElement('div');row.className='hrow';
     const ch=document.createElement('div');
     ch.className='hlc st-'+it.state;
-    ch.textContent=it.state==='joker'?'*':it.state==='special'?'§':it.char;
+    ch.textContent=it.state==='joker'?'*':it.state==='special'?'!':it.char;
 
     const pi=document.createElement('input');
     pi.className='pinp';pi.type='number';pi.min=0;pi.max=99;pi.value=it.pts;
@@ -486,14 +486,12 @@ function renderHand(){
       {k:'italic',lbl:'I',title:'Italique — +X multi permanent sur la case utilisée (+1 par clic)'},
       {k:'under',lbl:'U',title:'Souligné — multi cumulés ×1.5 à ce point (×2 avec Highlighted)'},
       {k:'yellow',lbl:'J',title:'Lettre jaune classique (A-Z) — vaut 10pts, améliore +5pts les mêmes lettres futures'},
-      {k:'special',lbl:'§',title:'§ Point exclamation — 10pts, se place librement début/fin du mot'},
-      {k:'joker',lbl:'*',title:'Joker wildcard'},
     ];
     for(const s of states){
       const b=document.createElement('button');
       b.className='stb'+(it.state===s.k?' on-'+s.k:'');
       b.textContent=s.lbl;b.title=s.title;
-      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';if(s.k==='special'){hand[i].char='§';}if(s.k==='yellow'){hand[i].pts=10;}renderHand();});
+      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';if(s.k==='special'){hand[i].char='!';}if(s.k==='yellow'){hand[i].pts=10;}renderHand();});
       sb.appendChild(b);
     }
     const db=document.createElement('button');db.className='delbtn';db.textContent='✕';
@@ -505,10 +503,10 @@ function renderHand(){
 
 document.getElementById('abtn').addEventListener('click',()=>{
   const v=document.getElementById('ai').value.toUpperCase().replace(/[^A-Z*]/g,'');
-  for(const c of v)hand.push({char:c,pts:c==='*'?0:c==='§'?10:(PTS0[c]||1),state:c==='*'?'joker':c==='§'?'special':'normal'});
+  for(const c of v)hand.push({char:c,pts:c==='*'?0:c==='!'?10:(PTS0[c]||1),state:c==='*'?'joker':c==='!'?'special':'normal'});
   document.getElementById('ai').value='';renderHand();
 });
-document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*§]/g,'');});
+document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*!]/g,'');});
 document.getElementById('ai').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('abtn').click();});
 document.getElementById('clrh').addEventListener('click',()=>{hand=[];renderHand();});
 
@@ -689,7 +687,7 @@ function doCalc(){
     const hasExclam=exclamItems.length>0;
 
     // Construire les items pour les "!" (10pts, état special)
-    const exclamItem={char:'§',pts:10,state:'special'};
+    const exclamItem={char:'!',pts:10,state:'special'};
 
     let scored=[];
     for(const len of [4,5,6,7,8,9]){
@@ -759,9 +757,9 @@ function doCalc(){
     for(const r of top){
       const card=document.createElement('div');card.className='wcard';
       const bttwNote=activeBon.has('bttw')?'<span style="color:var(--coral);font-size:.5rem;"> ×2 BTTW</span>':'';
-      const exclamNote=r.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> § ${r.exclPos}</span>`:'';
+      const exclamNote=r.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> ! ${r.exclPos}</span>`:'';
       const specNote=r.specialHit?`<span style="color:var(--teal);font-size:.5rem;"> ${SPEC_LBL[r.specialHit]}</span>`:'';
-      const displayWord=r.word.replace(/§/g,'');
+      const displayWord=r.word.replace(/!/g,'');
       card.innerHTML=`
         <div class="wctop">
           <span class="wcw">${displayWord}</span>
