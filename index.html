@@ -3,1096 +3,685 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wordatro Helper — Trouveur de mots ODS</title>
+  <title>Wordatro Helper</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:       #0d0d0f;
-      --surface:  #16161a;
-      --border:   #2a2a32;
-      --accent:   #c8f135;
-      --accent2:  #6c63ff;
-      --text:     #e8e8f0;
-      --muted:    #6b6b80;
-      --tile-bg:  #1e1e26;
-      --gold:     #f5c842;
-      --coral:    #ff6b6b;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ── GRAIN OVERLAY ── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 9999;
-      opacity: 0.5;
-    }
-
-    /* ── HEADER ── */
-    header {
-      padding: 2rem 2rem 1rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: baseline;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-    }
-
-    .logo {
-      font-family: 'Unbounded', sans-serif;
-      font-weight: 900;
-      font-size: clamp(1.4rem, 4vw, 2rem);
-      color: var(--accent);
-      letter-spacing: -0.02em;
-      line-height: 1;
-    }
-
-    .logo span {
-      color: var(--text);
-      opacity: 0.4;
-    }
-
-    .tagline {
-      font-size: 0.7rem;
-      color: var(--muted);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
-
-    .dict-badge {
-      margin-left: auto;
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 2px;
-    }
-
-    .dict-badge strong { color: var(--accent); }
-
-    /* ── MAIN LAYOUT ── */
-    main {
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 0;
-      min-height: calc(100vh - 80px);
-    }
-
-    @media (max-width: 800px) {
-      main { grid-template-columns: 1fr; }
-    }
-
-    /* ── LEFT PANEL ── */
-    .panel-left {
-      border-right: 1px solid var(--border);
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      position: sticky;
-      top: 0;
-      height: calc(100vh - 80px);
-      overflow-y: auto;
-    }
-
-    .section-title {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.6rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.75rem;
-    }
-
-    /* ── LETTER INPUT ── */
-    .letter-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 0.75rem;
-    }
-
-    .tile {
-      width: 40px;
-      height: 44px;
-      background: var(--tile-bg);
-      border: 1.5px solid var(--border);
-      border-radius: 4px;
-      font-family: 'Unbounded', sans-serif;
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text);
-      text-align: center;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      user-select: none;
-    }
-
-    .tile:hover { border-color: var(--accent); background: #22222e; }
-    .tile.selected {
-      border-color: var(--accent);
-      background: #1a2400;
-      color: var(--accent);
-    }
-    .tile.used {
-      opacity: 0.25;
-      pointer-events: none;
-    }
-
-    .tile .pts {
-      position: absolute;
-      bottom: 2px;
-      right: 4px;
-      font-size: 0.45rem;
-      color: var(--muted);
-      font-family: 'Space Mono', monospace;
-      font-weight: 400;
-    }
-
-    .tile.selected .pts { color: var(--accent); opacity: 0.7; }
-
-    /* ── TEXT INPUT ── */
-    .input-wrapper {
-      position: relative;
-    }
-
-    .letter-input {
-      width: 100%;
-      background: var(--tile-bg);
-      border: 1.5px solid var(--border);
-      border-radius: 4px;
-      color: var(--text);
-      font-family: 'Unbounded', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      padding: 0.75rem 3rem 0.75rem 1rem;
-      text-transform: uppercase;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    .letter-input:focus { border-color: var(--accent); }
-    .letter-input::placeholder { color: var(--muted); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 400; }
-
-    .clear-btn {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 4px;
-      line-height: 1;
-      transition: color 0.15s;
-    }
-    .clear-btn:hover { color: var(--coral); }
-
-    /* ── JOKER ── */
-    .joker-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-top: 0.5rem;
-    }
-
-    .joker-label {
-      font-size: 0.7rem;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-
-    .joker-input {
-      width: 50px;
-      background: var(--tile-bg);
-      border: 1.5px solid var(--border);
-      border-radius: 4px;
-      color: var(--gold);
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-align: center;
-      padding: 0.4rem;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .joker-input:focus { border-color: var(--gold); }
-
-    /* ── FILTERS ── */
-    .filter-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .filter-label {
-      font-size: 0.65rem;
-      color: var(--muted);
-      min-width: 80px;
-    }
-
-    .length-btns {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-
-    .len-btn {
-      width: 28px;
-      height: 24px;
-      background: var(--tile-bg);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--muted);
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      cursor: pointer;
-      transition: all 0.12s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .len-btn:hover { border-color: var(--accent2); color: var(--text); }
-    .len-btn.active { background: var(--accent2); border-color: var(--accent2); color: #fff; font-weight: 700; }
-
-    .sort-select {
-      background: var(--tile-bg);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      padding: 3px 6px;
-      outline: none;
-      cursor: pointer;
-    }
-
-    /* ── SEARCH BTN ── */
-    .search-btn {
-      width: 100%;
-      padding: 0.85rem;
-      background: var(--accent);
-      border: none;
-      border-radius: 4px;
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #0d0d0f;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    .search-btn:hover { opacity: 0.85; }
-    .search-btn:active { transform: scale(0.98); }
-
-    /* ── STATS ── */
-    .stats-row {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .stat {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .stat-val {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 900;
-      color: var(--accent);
-      line-height: 1;
-    }
-
-    .stat-lbl {
-      font-size: 0.6rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    /* ── RIGHT PANEL ── */
-    .panel-right {
-      padding: 2rem;
-      overflow-y: auto;
-    }
-
-    .results-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.5rem;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .results-title {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.7rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .results-count {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    /* ── WORDS GRID ── */
-    .words-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-
-    /* Groupé par longueur */
-    .length-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .length-header {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.6rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      padding: 0.4rem 0;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .length-count {
-      color: var(--accent2);
-    }
-
-    .words-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .word-chip {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.8rem;
-      padding: 5px 10px;
-      background: var(--tile-bg);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.12s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      position: relative;
-    }
-
-    .word-chip:hover {
-      border-color: var(--accent);
-      background: #1a2400;
-      color: var(--accent);
-    }
-
-    .word-chip:hover .word-score { color: var(--accent); }
-
-    .word-text { font-weight: 700; letter-spacing: 0.05em; }
-
-    .word-score {
-      font-size: 0.6rem;
-      color: var(--muted);
-      font-family: 'Space Mono', monospace;
-    }
-
-    .word-chip.high-value {
-      border-color: #3a2a00;
-    }
-
-    .word-chip.high-value .word-score { color: var(--gold); }
-
-    /* ── EMPTY STATE ── */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 300px;
-      gap: 1rem;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      opacity: 0.3;
-    }
-
-    .empty-msg {
-      font-size: 0.8rem;
-      line-height: 1.6;
-      max-width: 280px;
-    }
-
-    /* ── LOADING ── */
-    .loading {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      color: var(--muted);
-      font-size: 0.75rem;
-      padding: 2rem 0;
-    }
-
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── WORD DETAIL MODAL ── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      backdrop-filter: blur(4px);
-    }
-
-    .modal-overlay.open { display: flex; }
-
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 2rem;
-      max-width: 480px;
-      width: 90%;
-      position: relative;
-    }
-
-    .modal-word {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 2rem;
-      font-weight: 900;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-      margin-bottom: 1rem;
-    }
-
-    .modal-letters {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      margin-bottom: 1.5rem;
-    }
-
-    .modal-tile {
-      width: 38px;
-      height: 42px;
-      background: var(--tile-bg);
-      border: 1.5px solid var(--border);
-      border-radius: 4px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Unbounded', sans-serif;
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: var(--text);
-      position: relative;
-    }
-
-    .modal-tile.from-hand { border-color: var(--accent); color: var(--accent); }
-    .modal-tile.from-joker { border-color: var(--gold); color: var(--gold); }
-
-    .modal-tile .pts {
-      font-size: 0.45rem;
-      color: var(--muted);
-      font-family: 'Space Mono', monospace;
-      position: absolute;
-      bottom: 2px;
-      right: 3px;
-    }
-
-    .modal-stats {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .modal-stat { display: flex; flex-direction: column; gap: 3px; }
-    .modal-stat-val { font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--text); }
-    .modal-stat-lbl { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-
-    .modal-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: color 0.15s;
-    }
-    .modal-close:hover { color: var(--coral); }
-
-    /* ── COPY TOAST ── */
-    .toast {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--accent);
-      color: #0d0d0f;
-      font-family: 'Unbounded', sans-serif;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      padding: 0.6rem 1.2rem;
-      border-radius: 3px;
-      opacity: 0;
-      transition: opacity 0.2s, transform 0.2s;
-      pointer-events: none;
-      z-index: 200;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ── INIT BAR ── */
-    .init-bar {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      z-index: 500;
-      transition: opacity 0.4s;
-    }
-    .init-bar.hidden { opacity: 0; pointer-events: none; }
-
-    .init-logo {
-      font-family: 'Unbounded', sans-serif;
-      font-weight: 900;
-      font-size: 1.8rem;
-      color: var(--accent);
-    }
-
-    .progress-bar {
-      width: 240px;
-      height: 3px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      width: 0%;
-      transition: width 0.1s;
-    }
-
-    .init-msg {
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+      --bg:#0d0d0f; --surface:#16161a; --surface2:#1e1e26; --border:#2a2a32; --border2:#3a3a48;
+      --accent:#c8f135; --accent2:#6c63ff; --text:#e8e8f0; --muted:#6b6b80;
+      --gold:#f5c842; --coral:#ff6b6b; --teal:#2dd4bf;
+      --bold-c:#ff9f43; --italic-c:#a29bfe; --under-c:#2dd4bf; --special-c:#f5c842;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;}
+
+    header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+    .logo{font-family:'Unbounded',sans-serif;font-weight:900;font-size:1.2rem;color:var(--accent);}
+    .logo span{color:var(--muted);}
+    .tagline{font-size:.6rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+    .dbadge{margin-left:auto;font-size:.6rem;color:var(--muted);border:1px solid var(--border);padding:3px 8px;border-radius:2px;}
+    .dbadge strong{color:var(--accent);}
+
+    .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);}
+    .tab{padding:.7rem 1.2rem;font-family:'Unbounded',sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+    .tab:hover{color:var(--text);}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+    .tab-panel{display:none;}
+    .tab-panel.active{display:flex;}
+
+    /* LAYOUT */
+    .layout{display:grid;grid-template-columns:330px 1fr;min-height:calc(100vh - 108px);}
+    .layout2{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 108px);}
+    @media(max-width:800px){.layout,.layout2{grid-template-columns:1fr;}}
+    .pl{border-right:1px solid var(--border);padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;max-height:calc(100vh - 108px);position:sticky;top:0;}
+    .pr{padding:1.2rem;overflow-y:auto;max-height:calc(100vh - 108px);}
+
+    .stitle{font-family:'Unbounded',sans-serif;font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;}
+
+    /* INPUTS */
+    .linput{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.18em;padding:.6rem 2.5rem .6rem .7rem;text-transform:uppercase;outline:none;transition:border-color .15s;}
+    .linput:focus{border-color:var(--accent);}
+    .linput::placeholder{color:var(--muted);font-size:.65rem;font-weight:400;letter-spacing:.06em;}
+    .linput-wrap{position:relative;}
+    .xbtn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;transition:color .15s;}
+    .xbtn:hover{color:var(--coral);}
+
+    .jrow{display:flex;align-items:center;gap:.5rem;margin-top:.35rem;}
+    .jinp{width:42px;background:var(--surface2);border:1.5px solid var(--border);border-radius:3px;color:var(--special-c);font-family:'Unbounded',sans-serif;font-size:.75rem;font-weight:700;text-align:center;padding:.28rem;outline:none;}
+    .jinp:focus{border-color:var(--special-c);}
+    .jlbl{font-size:.6rem;color:var(--muted);}
+
+    .frow{display:flex;flex-direction:column;gap:.45rem;}
+    .fgroup{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;}
+    .flbl{font-size:.58rem;color:var(--muted);min-width:78px;}
+    .lbtns{display:flex;gap:3px;}
+    .lbtn{width:25px;height:22px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--muted);font-family:'Space Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;}
+    .lbtn:hover{border-color:var(--accent2);color:var(--text);}
+    .lbtn.active{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:700;}
+    .sselect,.minp{background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:.62rem;padding:3px 5px;outline:none;cursor:pointer;}
+    .minp{width:68px;text-transform:uppercase;}
+
+    .sbtn-main{width:100%;padding:.7rem;background:var(--accent);border:none;border-radius:4px;font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0d0d0f;cursor:pointer;transition:opacity .15s,transform .1s;}
+    .sbtn-main:hover{opacity:.85;}
+    .sbtn-main:active{transform:scale(.98);}
+    .sbtn-calc{width:100%;padding:.7rem;background:var(--accent2);border:none;border-radius:4px;font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;cursor:pointer;transition:opacity .15s;}
+    .sbtn-calc:hover{opacity:.85;}
+
+    .srow{display:flex;gap:.75rem;flex-wrap:wrap;}
+    .sval{font-family:'Unbounded',sans-serif;font-size:1.1rem;font-weight:900;color:var(--accent);line-height:1;}
+    .slbl{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+
+    /* RESULTS FINDER */
+    .lgroup{margin-bottom:1.1rem;}
+    .lhdr{font-family:'Unbounded',sans-serif;font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:.25rem 0;border-bottom:1px solid var(--border);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+    .lcnt{color:var(--accent2);}
+    .wgrid{display:flex;flex-wrap:wrap;gap:5px;}
+    .wchip{font-family:'Space Mono',monospace;font-size:.72rem;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px;}
+    .wchip:hover{border-color:var(--accent);background:#1a2400;color:var(--accent);}
+    .wchip:hover .wpts{color:var(--accent);}
+    .wtxt{font-weight:700;letter-spacing:.03em;}
+    .wpts{font-size:.52rem;color:var(--muted);}
+    .wchip.top{border-color:#3a2a00;}
+    .wchip.top .wpts{color:var(--gold);}
+
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;gap:.7rem;color:var(--muted);text-align:center;}
+    .eico{font-size:2.2rem;opacity:.2;}
+    .emsg{font-size:.72rem;line-height:1.6;max-width:250px;}
+
+    /* HAND EDITOR */
+    .hrows{display:flex;flex-direction:column;gap:5px;}
+    .hrow{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:5px 7px;transition:border-color .15s;}
+    .hrow:hover{border-color:var(--border2);}
+    .hlc{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;width:24px;text-align:center;flex-shrink:0;}
+    .hlc.st-normal{color:var(--text);}
+    .hlc.st-bold{color:var(--bold-c);}
+    .hlc.st-italic{color:var(--italic-c);font-style:italic;}
+    .hlc.st-under{color:var(--under-c);text-decoration:underline;}
+    .hlc.st-special{color:var(--special-c);}
+    .hlc.st-joker{color:var(--teal);}
+
+    .pinp{width:38px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--accent);font-family:'Unbounded',sans-serif;font-size:.68rem;font-weight:700;text-align:center;padding:2px 3px;outline:none;}
+    .pinp:focus{border-color:var(--accent);}
+
+    .stbts{display:flex;gap:3px;}
+    .stb{width:22px;height:20px;border:1px solid var(--border);border-radius:2px;background:var(--bg);cursor:pointer;font-size:.58rem;display:flex;align-items:center;justify-content:center;transition:all .12s;color:var(--muted);}
+    .stb:hover{color:var(--text);border-color:var(--border2);}
+    .stb.on-normal{border-color:var(--text);color:var(--text);}
+    .stb.on-bold{background:#2a1500;border-color:var(--bold-c);color:var(--bold-c);}
+    .stb.on-italic{background:#1a1540;border-color:var(--italic-c);color:var(--italic-c);}
+    .stb.on-under{background:#001a1a;border-color:var(--under-c);color:var(--under-c);}
+    .stb.on-special{background:#2a2000;border-color:var(--special-c);color:var(--special-c);}
+    .stb.on-joker{background:#001a20;border-color:var(--teal);color:var(--teal);}
+
+    .delbtn{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.7rem;transition:color .15s;flex-shrink:0;}
+    .delbtn:hover{color:var(--coral);}
+
+    .addrow{display:flex;gap:5px;align-items:center;}
+    .ainp{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.18em;padding:.45rem .65rem;text-transform:uppercase;outline:none;transition:border-color .15s;}
+    .ainp:focus{border-color:var(--accent);}
+    .addbtn{padding:.45rem .65rem;background:var(--accent);border:none;border-radius:4px;font-family:'Unbounded',sans-serif;font-size:.55rem;font-weight:700;color:#0d0d0f;cursor:pointer;}
+
+    /* GAMEBAR */
+    .gamebar{display:flex;gap:3px;flex-wrap:wrap;}
+    .gc{width:34px;height:38px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
+    .gc:hover{border-color:var(--border2);}
+    .gc.cur{border-color:var(--accent);background:#1a2400;}
+    .gc.sp5{border-color:#2a6a00;background:#0f2000;}
+    .gc.sp7{border-color:#6a5a00;background:#221a00;}
+    .gc.sp9{border-color:#005a6a;background:#001820;}
+    .gc .gn{font-size:.42rem;color:var(--muted);font-family:'Unbounded',sans-serif;}
+    .gc .gm{font-size:.6rem;font-weight:700;color:var(--text);}
+    .gc.cur .gm{color:var(--accent);}
+    .gc .ge{font-size:.38rem;margin-top:1px;}
+
+    .irow{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;}
+    .ic{width:34px;height:20px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:.5rem;color:var(--muted);cursor:pointer;transition:all .12s;font-family:'Unbounded',sans-serif;}
+    .ic:hover{border-color:var(--italic-c);color:var(--italic-c);}
+    .ic.has{background:#1a1540;border-color:var(--italic-c);color:var(--italic-c);font-weight:700;}
+
+    /* BONUS */
+    .bgrid{display:flex;flex-direction:column;gap:5px;}
+    .bitem{display:flex;align-items:flex-start;gap:7px;padding:6px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:border-color .12s;}
+    .bitem:hover{border-color:var(--border2);}
+    .bitem.on{border-color:var(--accent2);background:#0f0f20;}
+    .bcb{width:13px;height:13px;border:1.5px solid var(--border);border-radius:2px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:.55rem;transition:all .12s;}
+    .bitem.on .bcb{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+    .bname{font-family:'Unbounded',sans-serif;font-size:.58rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+    .bdesc{font-size:.52rem;color:var(--muted);line-height:1.4;}
+    .bitem.on .bname{color:var(--accent2);}
+
+    /* CALC RESULTS */
+    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.7rem .9rem;margin-bottom:7px;cursor:default;transition:border-color .15s;}
+    .wcard:hover{border-color:var(--border2);}
+    .wctop{display:flex;align-items:baseline;gap:.6rem;margin-bottom:.3rem;}
+    .wcw{font-family:'Unbounded',sans-serif;font-size:.95rem;font-weight:900;color:var(--text);}
+    .wcl{font-size:.55rem;color:var(--muted);}
+    .wcs{font-family:'Unbounded',sans-serif;font-size:1rem;font-weight:900;color:var(--accent);margin-left:auto;}
+    .wcd{font-size:.58rem;color:var(--muted);line-height:1.5;}
+    .wcd span{color:var(--text);}
+    .wctrace{font-size:.47rem;color:var(--muted);margin-top:3px;opacity:.65;line-height:1.5;}
+
+    /* INIT */
+    .ibar{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;z-index:500;transition:opacity .4s;}
+    .ibar.hidden{opacity:0;pointer-events:none;}
+    .ilogo{font-family:'Unbounded',sans-serif;font-weight:900;font-size:1.4rem;color:var(--accent);}
+    .ipbar{width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+    .ipfill{height:100%;background:var(--accent);width:0%;transition:width .15s;}
+    .imsg{font-size:.58rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+
+    .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(10px);background:var(--accent);color:#0d0d0f;font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;padding:.45rem 1rem;border-radius:3px;opacity:0;transition:all .2s;pointer-events:none;z-index:200;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-track{background:var(--bg);}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
   </style>
 </head>
 <body>
 
-<!-- INIT SCREEN -->
-<div class="init-bar" id="initBar">
-  <div class="init-logo">WORDATRO<span style="color:var(--muted)"> //</span> HELPER</div>
-  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-  <div class="init-msg" id="initMsg">Chargement du dictionnaire ODS...</div>
+<div class="ibar" id="ibar">
+  <div class="ilogo">WORDATRO HELPER</div>
+  <div class="ipbar"><div class="ipfill" id="ipf"></div></div>
+  <div class="imsg" id="imsg">Chargement du dictionnaire ODS…</div>
 </div>
 
-<!-- HEADER -->
 <header>
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
-  <div class="tagline">Trouveur de mots longs · ODS Scrabble FR</div>
-  <div class="dict-badge">Dictionnaire <strong>ODS8</strong> · <span id="dictCount">—</span> mots</div>
+  <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
+  <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
 </header>
 
-<!-- MAIN -->
-<main>
-  <!-- LEFT -->
-  <div class="panel-left">
+<div class="tabs">
+  <div class="tab active" data-tab="finder">🔍 Trouveur de mots</div>
+  <div class="tab" data-tab="calc">🎯 Calculateur de score</div>
+</div>
 
-    <!-- LETTERS -->
+<!-- ════════════ TAB 1 : FINDER ════════════ -->
+<div class="tab-panel active layout" id="tab-finder">
+  <div class="pl">
     <div>
-      <div class="section-title">Tes lettres</div>
-      <div class="input-wrapper">
-        <input
-          class="letter-input"
-          id="letterInput"
-          type="text"
-          maxlength="20"
-          placeholder="ex: AEIOURTS"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button class="clear-btn" id="clearBtn" title="Effacer">✕</button>
+      <div class="stitle">Tes lettres</div>
+      <div class="linput-wrap">
+        <input class="linput" id="li" type="text" maxlength="20" placeholder="ex: AEIOURTS" autocomplete="off" spellcheck="false"/>
+        <button class="xbtn" id="xcl">✕</button>
       </div>
-      <div class="letter-grid" id="letterGrid"></div>
-      <div class="joker-row">
-        <span class="joker-label">Jokers (*) :</span>
-        <input class="joker-input" id="jokerCount" type="number" min="0" max="3" value="0" />
-        <span style="font-size:0.65rem;color:var(--muted)">lettre(s) wildcard</span>
+      <div class="jrow">
+        <span class="jlbl">Jokers :</span>
+        <input class="jinp" id="jc" type="number" min="0" max="3" value="0"/>
+        <span class="jlbl">wildcard(s)</span>
       </div>
     </div>
-
-    <!-- FILTERS -->
     <div>
-      <div class="section-title">Filtres</div>
-      <div class="filter-row">
-        <div class="filter-group">
-          <span class="filter-label">Longueur :</span>
-          <div class="length-btns" id="lengthBtns"></div>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">Trier par :</span>
-          <select class="sort-select" id="sortSelect">
+      <div class="stitle">Filtres</div>
+      <div class="frow">
+        <div class="fgroup"><span class="flbl">Longueur :</span><div class="lbtns" id="lbtns"></div></div>
+        <div class="fgroup"><span class="flbl">Trier par :</span>
+          <select class="sselect" id="ss">
             <option value="length_desc">Longueur ↓</option>
             <option value="length_asc">Longueur ↑</option>
             <option value="score_desc">Score ↓</option>
             <option value="alpha">Alphabétique</option>
           </select>
         </div>
-        <div class="filter-group">
-          <span class="filter-label">Commence par :</span>
-          <input
-            id="startsWith"
-            type="text"
-            placeholder="ex: RE"
-            maxlength="4"
-            style="background:var(--tile-bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;padding:3px 8px;width:70px;outline:none;text-transform:uppercase;"
-          />
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">Contient :</span>
-          <input
-            id="contains"
-            type="text"
-            placeholder="ex: TION"
-            maxlength="6"
-            style="background:var(--tile-bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;padding:3px 8px;width:90px;outline:none;text-transform:uppercase;"
-          />
-        </div>
+        <div class="fgroup"><span class="flbl">Commence par :</span><input class="minp" id="sw" type="text" placeholder="ex: RE" maxlength="4"/></div>
+        <div class="fgroup"><span class="flbl">Contient :</span><input class="minp" id="ct" type="text" placeholder="ex: TION" maxlength="6" style="width:82px;"/></div>
       </div>
     </div>
-
-    <!-- SEARCH -->
-    <button class="search-btn" id="searchBtn">Trouver les mots →</button>
-
-    <!-- STATS -->
+    <button class="sbtn-main" id="sbtn">Trouver les mots →</button>
     <div>
-      <div class="section-title">Résultats</div>
-      <div class="stats-row">
-        <div class="stat">
-          <div class="stat-val" id="statTotal">—</div>
-          <div class="stat-lbl">Mots trouvés</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val" id="statBest">—</div>
-          <div class="stat-lbl">Meilleur score</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val" id="statLongest">—</div>
-          <div class="stat-lbl">Plus long</div>
-        </div>
+      <div class="stitle">Résultats</div>
+      <div class="srow">
+        <div><div class="sval" id="stot">—</div><div class="slbl">Mots</div></div>
+        <div><div class="sval" id="sbst">—</div><div class="slbl">Meilleur score</div></div>
+        <div><div class="sval" id="slng">—</div><div class="slbl">Plus long</div></div>
       </div>
     </div>
-
   </div>
-
-  <!-- RIGHT -->
-  <div class="panel-right" id="panelRight">
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">⬡</div>
-      <div class="empty-msg">Entre tes lettres et clique sur <strong style="color:var(--accent)">Trouver les mots</strong> pour voir tous les mots possibles avec ta main.</div>
-    </div>
-    <div id="resultsArea" style="display:none"></div>
-  </div>
-</main>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <button class="modal-close" id="modalClose">✕</button>
-    <div class="modal-word" id="modalWord"></div>
-    <div class="modal-letters" id="modalLetters"></div>
-    <div class="modal-stats" id="modalStats"></div>
+  <div class="pr" id="fr">
+    <div class="empty" id="emp"><div class="eico">⬡</div><div class="emsg">Entre tes lettres et clique sur <strong style="color:var(--accent)">Trouver les mots</strong>.</div></div>
+    <div id="ra" style="display:none"></div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast">Copié !</div>
+<!-- ════════════ TAB 2 : CALCULATEUR ════════════ -->
+<div class="tab-panel layout2" id="tab-calc">
+  <div class="pl">
 
-<!-- WORDS DATA -->
+    <!-- MAIN -->
+    <div>
+      <div class="stitle">Ta main</div>
+      <div class="addrow" style="margin-bottom:.5rem;">
+        <input class="ainp" id="ai" type="text" maxlength="12" placeholder="Lettres à ajouter" autocomplete="off" spellcheck="false"/>
+        <button class="addbtn" id="abtn">+ Ajouter</button>
+      </div>
+      <div class="hrows" id="hr"></div>
+      <div style="display:flex;gap:5px;margin-top:.4rem;">
+        <button class="addbtn" id="clrh" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);font-size:.52rem;">Vider</button>
+      </div>
+      <div style="font-size:.5rem;color:var(--muted);margin-top:.35rem;line-height:1.5;">
+        <span style="color:var(--bold-c)">■</span> Gras &nbsp;
+        <span style="color:var(--italic-c);font-style:italic">I</span> Italique &nbsp;
+        <span style="color:var(--under-c)">U̲</span> Souligné &nbsp;
+        <span style="color:var(--special-c)">!</span> Jaune &nbsp;
+        <span style="color:var(--teal)">*</span> Joker
+      </div>
+    </div>
+
+    <!-- BARRE -->
+    <div>
+      <div class="stitle">Barre de jeu — cliquer sur la case actuelle</div>
+      <div class="gamebar" id="gb"></div>
+      <div style="font-size:.47rem;color:var(--muted);margin-top:3px;">
+        <span style="color:var(--accent)">▶</span> pos. actuelle &nbsp;
+        <span style="color:#4a9a20">●</span> case 5 verte &nbsp;
+        <span style="color:var(--gold)">●</span> case 7 jaune &nbsp;
+        <span style="color:var(--teal)">●</span> case 9 énergie
+      </div>
+      <div class="stitle" style="margin-top:.6rem;margin-bottom:.25rem;">Multi italique par case <span style="font-size:.45rem;font-weight:400;">(clic gauche +3, clic droit −3)</span></div>
+      <div class="irow" id="ir"></div>
+    </div>
+
+    <!-- BONUS -->
+    <div>
+      <div class="stitle">Bonus actifs</div>
+      <div class="bgrid" id="bg"></div>
+    </div>
+
+    <button class="sbtn-calc" id="csrch">Calculer les meilleurs mots →</button>
+  </div>
+
+  <div class="pr" id="cr">
+    <div style="margin-bottom:1rem;">
+      <div style="font-family:'Unbounded',sans-serif;font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:.2rem;">Meilleurs mots avec ta main</div>
+      <div style="font-size:.58rem;color:var(--muted);" id="csub">Configure ta main, la barre et tes bonus, puis lance le calcul.</div>
+    </div>
+    <div id="cres"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script src="words.js"></script>
-
 <script>
-// ── LETTER VALUES (Scrabble FR) ──
-const PTS = {
-  A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:10,L:1,M:2,
-  N:1,O:1,P:3,Q:8,R:1,S:1,T:1,U:1,V:4,W:10,X:10,Y:10,Z:10
-};
+// ══ CONSTANTS ══
+const PTS0={A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:10,L:1,M:2,N:1,O:1,P:3,Q:8,R:1,S:1,T:1,U:1,V:4,W:10,X:10,Y:10,Z:10};
+const LENS=[4,5,6,7,8,9];
+const NCASES=15;
+const SPEC={5:'🟢',7:'⭐',9:'⚡'};
 
-// ── INIT: parse WORDS_BLOB ──
-let WORDS = []; // all words 4-9
-let WORDS_BY_LEN = {};
-let loaded = false;
+// ══ STATE ══
+let WORDS=[],WBL={},loaded=false;
+const activeLens=new Set(LENS);
+let hand=[];          // [{char,pts,state}]
+let curCase=1;        // 1-indexed
+let ibonus={};        // {caseIdx: multiBonus}
+const activeBon=new Set();
 
-function initDict() {
-  const bar = document.getElementById('initBar');
-  const fill = document.getElementById('progressFill');
-  const msg = document.getElementById('initMsg');
+const BONUSES=[
+  {id:'four',     name:'Four',            desc:'Mot de 4L → +1 lettre verte +1 lettre jaune générées.'},
+  {id:'again',    name:'Again',           desc:'Copie la 1ère lettre +2pts (boucle illimitée mode infini).'},
+  {id:'longword', name:'Long Word',       desc:'+15pts pour tout mot de 5 lettres ou plus.'},
+  {id:'eight',    name:'Eight',           desc:'×1.5 sur les points pour les mots de 8 lettres exactement.'},
+  {id:'extrabold',name:'Extra Bold',      desc:'Lettres en gras déclenchent leurs effets 2 fois au lieu d\'1.'},
+  {id:'nrg',      name:'N.R.G.',          desc:'Lettre N/R/G en gras en début de mot → +1 énergie.'},
+  {id:'boost',    name:'Boost',           desc:'+5 multi permanents sur tous les mots.'},
+  {id:'mult',     name:'M.U.L.T.',        desc:'+4 multi par lettre M/U/L/T dans le mot (ce mot uniquement).'},
+  {id:'battery',  name:'Battery',         desc:'+1 énergie de récompense en fin de round.'},
+  {id:'bttw',     name:'Back to the Wall',desc:'×2pts ET ×2multi la 1ère fois que l\'énergie tombe à 0.'},
+  {id:'highlighted',name:'Highlighted',  desc:'Lettres soulignées : ×2 multi cumulés au lieu de ×1.5.'},
+];
 
-  setTimeout(() => {
-    msg.textContent = 'Indexation des mots…';
-    fill.style.width = '30%';
-    setTimeout(() => {
-      WORDS = WORDS_BLOB.split('\n');
-      fill.style.width = '60%';
-      setTimeout(() => {
-        // Build index by length
-        for (const w of WORDS) {
-          const l = w.length;
-          if (!WORDS_BY_LEN[l]) WORDS_BY_LEN[l] = [];
-          WORDS_BY_LEN[l].push(w);
-        }
-        fill.style.width = '100%';
-        document.getElementById('dictCount').textContent = WORDS.length.toLocaleString('fr-FR');
-        loaded = true;
-        setTimeout(() => {
-          bar.classList.add('hidden');
-        }, 300);
-      }, 100);
-    }, 50);
-  }, 50);
+// ══ INIT DICT ══
+function initDict(){
+  const fill=document.getElementById('ipf');
+  const msg=document.getElementById('imsg');
+  setTimeout(()=>{
+    msg.textContent='Indexation…'; fill.style.width='30%';
+    setTimeout(()=>{
+      WORDS=WORDS_BLOB.split('\n'); fill.style.width='70%';
+      setTimeout(()=>{
+        for(const w of WORDS){const l=w.length;if(!WBL[l])WBL[l]=[];WBL[l].push(w);}
+        fill.style.width='100%';
+        document.getElementById('dcnt').textContent=WORDS.length.toLocaleString('fr-FR');
+        loaded=true;
+        setTimeout(()=>document.getElementById('ibar').classList.add('hidden'),300);
+      },80);
+    },40);
+  },40);
 }
 
-// ── LENGTH FILTER BUTTONS ──
-const lengths = [4,5,6,7,8,9];
-const activeLengths = new Set(lengths);
+// ══ TABS ══
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+  });
+});
 
-function buildLengthBtns() {
-  const container = document.getElementById('lengthBtns');
-  for (const l of lengths) {
-    const btn = document.createElement('button');
-    btn.className = 'len-btn active';
-    btn.textContent = l;
-    btn.dataset.len = l;
-    btn.addEventListener('click', () => {
-      if (activeLengths.has(l)) {
-        activeLengths.delete(l);
-        btn.classList.remove('active');
-      } else {
-        activeLengths.add(l);
-        btn.classList.add('active');
-      }
+// ══ TOAST ══
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+
+// ════════════ TAB 1 : FINDER ════════════
+function buildLBtns(){
+  const c=document.getElementById('lbtns');
+  for(const l of LENS){
+    const b=document.createElement('button');
+    b.className='lbtn active';b.textContent=l;b.dataset.len=l;
+    b.addEventListener('click',()=>{
+      if(activeLens.has(l)){activeLens.delete(l);b.classList.remove('active');}
+      else{activeLens.add(l);b.classList.add('active');}
     });
-    container.appendChild(btn);
+    c.appendChild(b);
   }
 }
 
-// ── LETTER TILES ──
-function buildTiles(letters) {
-  const grid = document.getElementById('letterGrid');
-  grid.innerHTML = '';
-  for (let i = 0; i < letters.length; i++) {
-    const c = letters[i];
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.innerHTML = `${c}<span class="pts">${PTS[c]||'?'}</span>`;
-    grid.appendChild(tile);
-  }
-}
+function wsc0(w){return w.split('').reduce((s,c)=>s+(PTS0[c]||0),0);}
 
-// ── WORD SCORE ──
-function wordScore(w) {
-  return w.split('').reduce((s,c) => s + (PTS[c]||0), 0);
-}
-
-// ── SEARCH: can we form word from letters+jokers? ──
-function canForm(word, letters, jokers) {
-  const avail = {};
-  for (const c of letters) avail[c] = (avail[c]||0)+1;
-  let jokersUsed = 0;
-  for (const c of word) {
-    if (avail[c] && avail[c]>0) {
-      avail[c]--;
-    } else if (jokersUsed < jokers) {
-      jokersUsed++;
-    } else {
-      return false;
-    }
-  }
+function canForm(word,letters,jokers){
+  const av={};for(const c of letters)av[c]=(av[c]||0)+1;
+  let j=0;
+  for(const c of word){if(av[c]>0)av[c]--;else if(j<jokers)j++;else return false;}
   return true;
 }
 
-// ── MAIN SEARCH ──
-function doSearch() {
-  if (!loaded) return;
-
-  const raw = document.getElementById('letterInput').value.toUpperCase().replace(/[^A-Z]/g,'');
-  const jokers = parseInt(document.getElementById('jokerCount').value)||0;
-  const sortMode = document.getElementById('sortSelect').value;
-  const startsWith = document.getElementById('startsWith').value.toUpperCase().replace(/[^A-Z]/g,'');
-  const contains = document.getElementById('contains').value.toUpperCase().replace(/[^A-Z]/g,'');
-
-  if (!raw && jokers === 0) return;
-
-  const letters = raw.split('');
-
-  // Filter candidates
-  let results = [];
-  for (const len of activeLengths) {
-    const candidates = WORDS_BY_LEN[len] || [];
-    for (const w of candidates) {
-      if (startsWith && !w.startsWith(startsWith)) continue;
-      if (contains && !w.includes(contains)) continue;
-      if (canForm(w, letters, jokers)) results.push(w);
+function doSearch(){
+  if(!loaded)return;
+  const raw=document.getElementById('li').value.toUpperCase().replace(/[^A-Z]/g,'');
+  const jokers=parseInt(document.getElementById('jc').value)||0;
+  const sort=document.getElementById('ss').value;
+  const sw2=document.getElementById('sw').value.toUpperCase().replace(/[^A-Z]/g,'');
+  const ct2=document.getElementById('ct').value.toUpperCase().replace(/[^A-Z]/g,'');
+  if(!raw&&jokers===0)return;
+  const letters=raw.split('');
+  let res=[];
+  for(const len of activeLens){
+    for(const w of(WBL[len]||[])){
+      if(sw2&&!w.startsWith(sw2))continue;
+      if(ct2&&!w.includes(ct2))continue;
+      if(canForm(w,letters,jokers))res.push(w);
     }
   }
-
-  // Sort
-  if (sortMode === 'length_desc') results.sort((a,b) => b.length-a.length || wordScore(b)-wordScore(a));
-  else if (sortMode === 'length_asc') results.sort((a,b) => a.length-b.length || wordScore(b)-wordScore(a));
-  else if (sortMode === 'score_desc') results.sort((a,b) => wordScore(b)-wordScore(a));
-  else results.sort();
-
-  renderResults(results, letters, jokers);
+  if(sort==='length_desc')res.sort((a,b)=>b.length-a.length||wsc0(b)-wsc0(a));
+  else if(sort==='length_asc')res.sort((a,b)=>a.length-b.length||wsc0(b)-wsc0(a));
+  else if(sort==='score_desc')res.sort((a,b)=>wsc0(b)-wsc0(a));
+  else res.sort();
+  renderFinder(res);
 }
 
-// ── RENDER ──
-function renderResults(results, letters, jokers) {
-  const area = document.getElementById('resultsArea');
-  const empty = document.getElementById('emptyState');
-
-  // Stats
-  document.getElementById('statTotal').textContent = results.length.toLocaleString('fr-FR');
-  if (results.length > 0) {
-    const best = Math.max(...results.map(wordScore));
-    const longest = Math.max(...results.map(w => w.length));
-    document.getElementById('statBest').textContent = best;
-    document.getElementById('statLongest').textContent = longest;
-  } else {
-    document.getElementById('statBest').textContent = '—';
-    document.getElementById('statLongest').textContent = '—';
+function renderFinder(res){
+  const area=document.getElementById('ra');
+  const emp=document.getElementById('emp');
+  document.getElementById('stot').textContent=res.length.toLocaleString('fr-FR');
+  if(res.length===0){
+    document.getElementById('sbst').textContent='—';document.getElementById('slng').textContent='—';
+    emp.style.display='flex';area.style.display='none';
+    emp.querySelector('.emsg').innerHTML='Aucun mot trouvé.<br>Essaie un joker ou modifie les filtres.';return;
   }
-
-  if (results.length === 0) {
-    empty.style.display = 'flex';
-    area.style.display = 'none';
-    empty.querySelector('.empty-msg').innerHTML = 'Aucun mot trouvé avec ces lettres.<br>Essaie d\'ajouter un joker ou de modifier les filtres.';
-    return;
-  }
-
-  empty.style.display = 'none';
-  area.style.display = 'block';
-
-  // Group by length
-  const byLen = {};
-  for (const w of results) {
-    const l = w.length;
-    if (!byLen[l]) byLen[l] = [];
-    byLen[l].push(w);
-  }
-
-  const sortMode = document.getElementById('sortSelect').value;
-  const lenKeys = Object.keys(byLen).map(Number).sort((a,b) => sortMode==='length_asc'?a-b:b-a);
-
-  const avgScore = results.length > 0 ? results.reduce((s,w)=>s+wordScore(w),0)/results.length : 0;
-
-  area.innerHTML = '';
-  for (const len of lenKeys) {
-    const group = document.createElement('div');
-    group.className = 'length-group';
-
-    const header = document.createElement('div');
-    header.className = 'length-header';
-    header.innerHTML = `${len} lettres <span class="length-count">${byLen[len].length} mots</span>`;
-    group.appendChild(header);
-
-    const grid = document.createElement('div');
-    grid.className = 'words-grid';
-
-    for (const w of byLen[len]) {
-      const sc = wordScore(w);
-      const chip = document.createElement('div');
-      chip.className = 'word-chip' + (sc > avgScore*1.3 ? ' high-value' : '');
-      chip.innerHTML = `<span class="word-text">${w}</span><span class="word-score">${sc}pts</span>`;
-      chip.addEventListener('click', () => openModal(w, letters, jokers));
-      grid.appendChild(chip);
+  document.getElementById('sbst').textContent=Math.max(...res.map(wsc0));
+  document.getElementById('slng').textContent=Math.max(...res.map(w=>w.length));
+  emp.style.display='none';area.style.display='block';
+  const byLen={};for(const w of res){const l=w.length;if(!byLen[l])byLen[l]=[];byLen[l].push(w);}
+  const sort=document.getElementById('ss').value;
+  const lks=Object.keys(byLen).map(Number).sort((a,b)=>sort==='length_asc'?a-b:b-a);
+  const avg=res.reduce((s,w)=>s+wsc0(w),0)/res.length;
+  area.innerHTML='';
+  for(const len of lks){
+    const g=document.createElement('div');g.className='lgroup';
+    const h=document.createElement('div');h.className='lhdr';
+    h.innerHTML=`${len} lettres <span class="lcnt">${byLen[len].length}</span>`;g.appendChild(h);
+    const gr=document.createElement('div');gr.className='wgrid';
+    for(const w of byLen[len]){
+      const sc=wsc0(w);
+      const c=document.createElement('div');c.className='wchip'+(sc>avg*1.3?' top':'');
+      c.innerHTML=`<span class="wtxt">${w}</span><span class="wpts">${sc}pts</span>`;
+      c.addEventListener('click',()=>{navigator.clipboard?.writeText(w);toast(w+' copié !');});
+      gr.appendChild(c);
     }
-
-    group.appendChild(grid);
-    area.appendChild(group);
+    g.appendChild(gr);area.appendChild(g);
   }
 }
 
-// ── MODAL ──
-function openModal(word, letters, jokers) {
-  const avail = {};
-  for (const c of letters) avail[c] = (avail[c]||0)+1;
+document.getElementById('li').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*]/g,'');});
+document.getElementById('xcl').addEventListener('click',()=>{
+  ['li','sw','ct'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('jc').value=0;
+  document.getElementById('emp').style.display='flex';
+  document.getElementById('ra').style.display='none';
+  ['stot','sbst','slng'].forEach(id=>document.getElementById(id).textContent='—');
+});
+document.getElementById('sbtn').addEventListener('click',doSearch);
+document.getElementById('li').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+document.getElementById('sw').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'');});
+document.getElementById('ct').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'');});
 
-  document.getElementById('modalWord').textContent = word;
+// ════════════ TAB 2 : CALCULATEUR ════════════
 
-  // Letter tiles
-  const tilesEl = document.getElementById('modalLetters');
-  tilesEl.innerHTML = '';
-  let jokersUsed = 0;
-  for (const c of word) {
-    const tile = document.createElement('div');
-    if (avail[c] && avail[c]>0) {
-      tile.className = 'modal-tile from-hand';
-      avail[c]--;
+// ── HAND ──
+function renderHand(){
+  const rows=document.getElementById('hr');
+  rows.innerHTML='';
+  if(hand.length===0){
+    rows.innerHTML='<div style="font-size:.62rem;color:var(--muted);text-align:center;padding:.5rem;">Main vide</div>';return;
+  }
+  hand.forEach((it,i)=>{
+    const row=document.createElement('div');row.className='hrow';
+    const ch=document.createElement('div');
+    ch.className='hlc st-'+it.state;
+    ch.textContent=it.state==='joker'?'*':it.char;
+
+    const pi=document.createElement('input');
+    pi.className='pinp';pi.type='number';pi.min=0;pi.max=99;pi.value=it.pts;
+    pi.addEventListener('change',()=>{hand[i].pts=parseInt(pi.value)||0;});
+
+    const sb=document.createElement('div');sb.className='stbts';
+    const states=[
+      {k:'normal',lbl:'N',title:'Normal'},
+      {k:'bold',lbl:'B',title:'Gras — effets de case ×2 (×4 avec Extra Bold)'},
+      {k:'italic',lbl:'I',title:'Italique — +3 multi permanent sur la case utilisée'},
+      {k:'under',lbl:'U',title:'Souligné — multi cumulés ×1.5 à ce point (×2 avec Highlighted)'},
+      {k:'special',lbl:'!',title:'Lettre jaune — à positionner librement (début/fin de mot)'},
+      {k:'joker',lbl:'*',title:'Joker wildcard'},
+    ];
+    for(const s of states){
+      const b=document.createElement('button');
+      b.className='stb'+(it.state===s.k?' on-'+s.k:'');
+      b.textContent=s.lbl;b.title=s.title;
+      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';renderHand();});
+      sb.appendChild(b);
+    }
+    const db=document.createElement('button');db.className='delbtn';db.textContent='✕';
+    db.addEventListener('click',()=>{hand.splice(i,1);renderHand();});
+    row.appendChild(ch);row.appendChild(pi);row.appendChild(sb);row.appendChild(db);
+    rows.appendChild(row);
+  });
+}
+
+document.getElementById('abtn').addEventListener('click',()=>{
+  const v=document.getElementById('ai').value.toUpperCase().replace(/[^A-Z*]/g,'');
+  for(const c of v)hand.push({char:c,pts:c==='*'?0:(PTS0[c]||1),state:c==='*'?'joker':'normal'});
+  document.getElementById('ai').value='';renderHand();
+});
+document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*]/g,'');});
+document.getElementById('ai').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('abtn').click();});
+document.getElementById('clrh').addEventListener('click',()=>{hand=[];renderHand();});
+
+// ── GAMEBAR ──
+function buildGamebar(){
+  const gb=document.getElementById('gb');
+  const ir=document.getElementById('ir');
+  gb.innerHTML='';ir.innerHTML='';
+  for(let i=1;i<=NCASES;i++){
+    const c=document.createElement('div');
+    let cls='gc';
+    if(i===curCase)cls+=' cur';
+    if(i===5)cls+=' sp5';
+    if(i===7)cls+=' sp7';
+    if(i===9)cls+=' sp9';
+    c.className=cls;
+    c.innerHTML=`<span class="gn">${i}</span><span class="gm">${i===curCase?'▶':i}</span><span class="ge">${SPEC[i]||''}</span>`;
+    c.title=`Case ${i}${SPEC[i]?' — case spéciale':''}`;
+    c.addEventListener('click',()=>{curCase=i;buildGamebar();});
+    gb.appendChild(c);
+
+    const ic=document.createElement('div');
+    const ib=ibonus[i]||0;
+    ic.className='ic'+(ib>0?' has':'');
+    ic.textContent=ib>0?'+'+ib:'·';
+    ic.title=`Case ${i} — italique accumulé: +${ib} multi (clic gauche +3, clic droit −3)`;
+    ic.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||0)+3;buildGamebar();});
+    ic.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||0)-3);buildGamebar();});
+    ir.appendChild(ic);
+  }
+}
+
+// ── BONUS ──
+function buildBonusGrid(){
+  const g=document.getElementById('bg');
+  for(const b of BONUSES){
+    const item=document.createElement('div');item.className='bitem';
+    item.innerHTML=`<div class="bcb"></div><div><div class="bname">${b.name}</div><div class="bdesc">${b.desc}</div></div>`;
+    item.addEventListener('click',()=>{
+      if(activeBon.has(b.id))activeBon.delete(b.id);else activeBon.add(b.id);
+      item.classList.toggle('on');
+      item.querySelector('.bcb').textContent=activeBon.has(b.id)?'✓':'';
+    });
+    g.appendChild(item);
+  }
+}
+
+// ══ CALCUL DE SCORE ══
+// FORMULE VALIDÉE (SOMME avec O gras, E souligné → 108) :
+// cum_pts  : 0 → +pts par lettre (gras = ×2, extra bold = ×3)
+// cum_multi: 0 → +1 par case + ibonus + boost(+5 toutes cases)
+//            Gras : cm doublé. Souligné : cumMulti × 1.5 après ajout.
+// score = cum_pts × cum_multi
+
+function calcScore(word, items){
+  const n=word.length;
+  const caseStart=curCase-n+1;
+  const underF=activeBon.has('highlighted')?2.0:1.5;
+  const xbFactor=activeBon.has('extrabold')?2:1;
+
+  let cumPts=0;
+  let cumMulti=0;
+  const trace=[];
+
+  for(let i=0;i<n;i++){
+    const cIdx=caseStart+i;
+    const it=items[i];
+    const isBold=(it.state==='bold');
+
+    // Points
+    const ptsAdd=isBold ? it.pts*(1+xbFactor) : it.pts;
+    cumPts+=ptsAdd;
+
+    // Multi
+    let cm=1;
+    if(cIdx>=1&&cIdx<=NCASES) cm+=(ibonus[cIdx]||0);
+    if(activeBon.has('boost')) cm+=5;
+    if(activeBon.has('mult')&&'MULT'.includes(it.char)) cm+=4;
+    if(isBold) cm+=cm*xbFactor;
+    cumMulti+=cm;
+
+    // Souligné : ×underF sur le cumul multi après ajout
+    if(it.state==='under'){
+      const before=cumMulti;
+      cumMulti=Math.floor(cumMulti*underF);
+      trace.push(`${it.char}(+${ptsAdd}pts,+${cm}m×${underF}:${before}→${cumMulti})`);
     } else {
-      tile.className = 'modal-tile from-joker';
-      jokersUsed++;
+      trace.push(`${it.char}(+${ptsAdd}pts,+${cm}m→${cumMulti})`);
     }
-    tile.innerHTML = `${c}<span class="pts">${PTS[c]||0}</span>`;
-    tilesEl.appendChild(tile);
   }
 
-  // Stats
-  const sc = wordScore(word);
-  const multi = word.length >= 7 ? '×' + (word.length >= 9 ? '3' : word.length >= 8 ? '2.5' : '2') : '×1.5';
-  document.getElementById('modalStats').innerHTML = `
-    <div class="modal-stat">
-      <div class="modal-stat-val">${sc}</div>
-      <div class="modal-stat-lbl">Score base</div>
-    </div>
-    <div class="modal-stat">
-      <div class="modal-stat-val">${word.length}</div>
-      <div class="modal-stat-lbl">Lettres</div>
-    </div>
-    <div class="modal-stat">
-      <div class="modal-stat-val">${jokersUsed}</div>
-      <div class="modal-stat-lbl">Joker(s)</div>
-    </div>
-    <div class="modal-stat">
-      <div class="modal-stat-val" style="color:var(--accent2)">${multi}</div>
-      <div class="modal-stat-lbl">Bonus longueur</div>
-    </div>
-  `;
+  // Bonus finaux sur les pts
+  if(activeBon.has('eight')&&n===8) cumPts=Math.round(cumPts*1.5);
+  if(activeBon.has('longword')&&n>=5) cumPts+=15;
 
-  document.getElementById('modalOverlay').classList.add('open');
+  // BTTW
+  const bttw=activeBon.has('bttw');
+  const fp=bttw?cumPts*2:cumPts;
+  const fm=bttw?cumMulti*2:cumMulti;
+
+  return {pts:fp, multi:fm, score:fp*fm, trace:trace.join(' → ')};
 }
 
-// ── TOAST ──
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 1800);
+// ── FIND & CALC ──
+function doCalc(){
+  if(!loaded){toast('Dictionnaire en cours de chargement…');return;}
+  if(hand.length===0){toast('Ajoute des lettres dans ta main !');return;}
+
+  const res=document.getElementById('cres');
+  res.innerHTML='<div style="color:var(--muted);font-size:.65rem;padding:.5rem;">Calcul…</div>';
+
+  setTimeout(()=>{
+    const nonJokers=hand.filter(it=>it.state!=='joker');
+    const jokerItems=hand.filter(it=>it.state==='joker');
+    const nj=jokerItems.length;
+
+    let scored=[];
+    for(const len of [4,5,6,7,8,9]){
+      for(const w of(WBL[len]||[])){
+        const avail={};
+        for(const it of nonJokers)avail[it.char]=(avail[it.char]||0)+1;
+        let jLeft=nj;let ok=true;
+        const usedIdx=[];
+        const usedItems=[];
+        for(const c of w){
+          if(avail[c]>0){
+            avail[c]--;
+            // Trouver le premier item non encore utilisé avec ce char
+            const idx=hand.findIndex((it,i)=>it.char===c&&it.state!=='joker'&&!usedIdx.includes(i));
+            if(idx>=0){usedIdx.push(idx);usedItems.push(hand[idx]);}
+            else{usedItems.push({char:c,pts:PTS0[c]||1,state:'normal'});}
+          } else if(jLeft>0){
+            jLeft--;
+            const jIdx=hand.findIndex((it,i)=>it.state==='joker'&&!usedIdx.includes(i));
+            if(jIdx>=0){usedIdx.push(jIdx);usedItems.push(hand[jIdx]);}
+            else usedItems.push({char:c,pts:0,state:'joker'});
+          } else {ok=false;break;}
+        }
+        if(!ok)continue;
+        const r=calcScore(w,usedItems);
+        scored.push({word:w,...r});
+      }
+    }
+
+    scored.sort((a,b)=>b.score-a.score);
+    const top=scored.slice(0,60);
+
+    document.getElementById('csub').textContent=`${scored.length} mots possibles — top ${Math.min(60,scored.length)} par score estimé`;
+    res.innerHTML='';
+
+    for(const r of top){
+      const card=document.createElement('div');card.className='wcard';
+      const bttwNote=activeBon.has('bttw')?'<span style="color:var(--coral);font-size:.52rem;"> ×2 BTTW</span>':'';
+      card.innerHTML=`
+        <div class="wctop">
+          <span class="wcw">${r.word}</span>
+          <span class="wcl">${r.word.length}L</span>
+          <span class="wcs">${r.score.toLocaleString('fr-FR')}</span>
+          ${bttwNote}
+        </div>
+        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi</div>
+        <div class="wctrace">${r.trace}</div>
+      `;
+      res.appendChild(card);
+    }
+    if(scored.length===0)res.innerHTML='<div style="color:var(--muted);font-size:.65rem;padding:.5rem;">Aucun mot trouvé avec cette main.</div>';
+  },10);
 }
 
-// ── EVENTS ──
-document.getElementById('letterInput').addEventListener('input', e => {
-  const val = e.target.value.toUpperCase().replace(/[^A-Z*]/g,'');
-  e.target.value = val;
-  buildTiles(val.replace(/\*/g,'').split(''));
-});
+document.getElementById('csrch').addEventListener('click',doCalc);
 
-document.getElementById('clearBtn').addEventListener('click', () => {
-  document.getElementById('letterInput').value = '';
-  document.getElementById('letterGrid').innerHTML = '';
-  document.getElementById('jokerCount').value = 0;
-  document.getElementById('startsWith').value = '';
-  document.getElementById('contains').value = '';
-  document.getElementById('emptyState').querySelector('.empty-msg').innerHTML = 'Entre tes lettres et clique sur <strong style="color:var(--accent)">Trouver les mots</strong> pour voir tous les mots possibles avec ta main.';
-  document.getElementById('emptyState').style.display = 'flex';
-  document.getElementById('resultsArea').style.display = 'none';
-  document.getElementById('statTotal').textContent = '—';
-  document.getElementById('statBest').textContent = '—';
-  document.getElementById('statLongest').textContent = '—';
-});
-
-document.getElementById('searchBtn').addEventListener('click', doSearch);
-
-document.getElementById('letterInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doSearch();
-});
-
-document.getElementById('modalClose').addEventListener('click', () => {
-  document.getElementById('modalOverlay').classList.remove('open');
-});
-
-document.getElementById('modalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modalOverlay')) {
-    document.getElementById('modalOverlay').classList.remove('open');
-  }
-});
-
-document.getElementById('startsWith').addEventListener('input', e => {
-  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,'');
-});
-document.getElementById('contains').addEventListener('input', e => {
-  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,'');
-});
-
-// ── BOOT ──
-buildLengthBtns();
+// ══ BOOT ══
+buildLBtns();
+buildGamebar();
+buildBonusGrid();
+renderHand();
 initDict();
 </script>
 </body>
