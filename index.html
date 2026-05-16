@@ -30,7 +30,7 @@
     .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
     .tab-panel{display:none !important;}
     #tab-finder.active{display:grid !important;grid-template-columns:330px 1fr;min-height:calc(100vh - 108px);}
-    #tab-calc.active{display:grid !important;grid-template-columns:450px 1fr;min-height:calc(100vh - 108px);}
+    #tab-calc.active{display:grid !important;grid-template-columns:480px 1fr;min-height:calc(100vh - 108px);}
     #tab-finder,#tab-calc{width:100%;}
 
     /* LAYOUT */
@@ -127,7 +127,7 @@
 
     /* GAMEBAR */
     .gamebar{display:flex;gap:3px;flex-wrap:wrap;}
-    .gc{width:40px;height:42px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
+    .gc{width:42px;height:44px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
     .gc:hover{border-color:var(--border2);}
     .gc.cur{border-color:var(--accent);background:#1a2400;}
     .gc.sp5{border-color:#2a6a00;background:#0f2000;}
@@ -155,15 +155,15 @@
     .bitem.on .bname{color:var(--accent2);}
 
     /* CALC RESULTS */
-    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.4rem .75rem;margin-bottom:4px;cursor:default;transition:border-color .15s;}
+    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.35rem .6rem;margin-bottom:3px;cursor:default;transition:border-color .15s;}
     .wcard:hover{border-color:var(--border2);}
-    .wctop{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.15rem;}
+    .wctop{display:flex;align-items:baseline;gap:.4rem;margin-bottom:.1rem;}
     .wcw{font-family:'Unbounded',sans-serif;font-size:.8rem;font-weight:900;color:var(--text);}
     .wcl{font-size:.55rem;color:var(--muted);}
     .wcs{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;color:var(--accent);margin-left:auto;}
     .wcd{font-size:.58rem;color:var(--muted);line-height:1.5;}
     .wcd span{color:var(--text);}
-    .wctrace{font-size:.47rem;color:var(--muted);margin-top:3px;opacity:.65;line-height:1.5;}
+    .wctrace{font-size:.47rem;color:#9090a8;margin-top:3px;line-height:1.5;}
 
     /* INIT */
     .ibar{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;z-index:500;transition:opacity .4s;}
@@ -193,7 +193,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.8</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.9</div>
 </header>
 
 <div class="tabs">
@@ -501,11 +501,11 @@ function renderHand(){
 }
 
 document.getElementById('abtn').addEventListener('click',()=>{
-  const v=document.getElementById('ai').value.toUpperCase().replace(/[^A-Z*]/g,'');
+  const v=document.getElementById('ai').value.toUpperCase().replace(/[^A-Z*!]/g,'');
   for(const c of v)hand.push({char:c,pts:c==='*'?0:c==='!'?10:(PTS0[c]||1),state:c==='*'?'joker':c==='!'?'special':'normal'});
   document.getElementById('ai').value='';renderHand();
 });
-document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*!]/g,'');});
+document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^A-Za-z*!]/g,'').toUpperCase();});
 document.getElementById('ai').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('abtn').click();});
 document.getElementById('clrh').addEventListener('click',()=>{hand=[];renderHand();});
 
@@ -880,14 +880,14 @@ function doCalc(){
           if(vDiv.style.display==='none'){
             vDiv.style.display='block';
             vDiv.innerHTML=variants.map((v,i)=>`
-              <div style="padding:.3rem 0;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;">
+              <div style="padding:.2rem 0;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap;">
                 <span style="font-size:.58rem;color:var(--muted);">#${i+1}</span>
                 <span style="font-family:'Unbounded',sans-serif;font-size:.65rem;font-weight:700;color:${i===0?'var(--accent)':'var(--text)'};">${v.score.toLocaleString('fr-FR')}</span>
                 <span style="font-size:.55rem;color:var(--muted);">${v.pts}pts × ${v.multi}m</span>
                 <span style="font-size:.55rem;color:var(--italic-c);">${v.label}</span>
                 ${v.exclPos?`<span style="font-size:.5rem;color:var(--special-c);">! ${v.exclPos}</span>`:''}
                 ${v.specialHit?`<span style="font-size:.5rem;color:var(--teal);">${SPEC_LBL[v.specialHit]}</span>`:''}
-                <div style="font-size:.45rem;color:var(--muted);width:100%;opacity:.7;">${v.trace}</div>
+                <div style="font-size:.45rem;color:#9090a8;width:100%;margin-top:2px;">${v.trace}</div>
               </div>
             `).join('');
           } else {
