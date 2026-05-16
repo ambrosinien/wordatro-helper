@@ -279,7 +279,7 @@
         <span style="color:var(--gold)">●</span> case 7 jaune &nbsp;
         <span style="color:var(--teal)">●</span> case 9 énergie
       </div>
-      <div class="stitle" style="margin-top:.6rem;margin-bottom:.25rem;">Multi italique par case <span style="font-size:.45rem;font-weight:400;">(clic gauche +3, clic droit −3)</span></div>
+      <div class="stitle" style="margin-top:.6rem;margin-bottom:.25rem;">Multi italique par case <span style="font-size:.45rem;font-weight:400;">(clic gauche +1, clic droit −1)</span></div>
       <div class="irow" id="ir"></div>
     </div>
 
@@ -481,7 +481,7 @@ function renderHand(){
     const states=[
       {k:'normal',lbl:'N',title:'Normal'},
       {k:'bold',lbl:'B',title:'Gras — effets de case ×2 (×4 avec Extra Bold)'},
-      {k:'italic',lbl:'I',title:'Italique — +3 multi permanent sur la case utilisée'},
+      {k:'italic',lbl:'I',title:'Italique — +X multi permanent sur la case utilisée (+1 par clic)'},
       {k:'under',lbl:'U',title:'Souligné — multi cumulés ×1.5 à ce point (×2 avec Highlighted)'},
       {k:'special',lbl:'!',title:'Lettre jaune — à positionner librement (début/fin de mot)'},
       {k:'joker',lbl:'*',title:'Joker wildcard'},
@@ -531,9 +531,9 @@ function buildGamebar(){
     const ib=ibonus[i]||0;
     ic.className='ic'+(ib>0?' has':'');
     ic.textContent=ib>0?'+'+ib:'·';
-    ic.title=`Case ${i} — italique accumulé: +${ib} multi (clic gauche +3, clic droit −3)`;
-    ic.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||0)+3;buildGamebar();});
-    ic.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||0)-3);buildGamebar();});
+    ic.title=`Case ${i} — italique accumulé: +${ib} multi (clic gauche +1, clic droit −1)`;
+    ic.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||0)+1;buildGamebar();});
+    ic.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||0)-1);buildGamebar();});
     ir.appendChild(ic);
   }
 }
@@ -618,13 +618,20 @@ function doCalc(){
   res.innerHTML='<div style="color:var(--muted);font-size:.65rem;padding:.5rem;">Calcul…</div>';
 
   setTimeout(()=>{
-    const nonJokers=hand.filter(it=>it.state!=='joker');
-    const jokerItems=hand.filter(it=>it.state==='joker');
-    const nj=jokerItems.length;
+    // Séparer les "!" des lettres normales/jokers
+    const exclamItems=hand.filter(it=>it.state==='special'); // lettres "!"
+    const normalHand=hand.filter(it=>it.state!=='special');
+    const nonJokers=normalHand.filter(it=>it.state!=='joker');
+    const nj=normalHand.filter(it=>it.state==='joker').length;
+    const hasExclam=exclamItems.length>0;
+
+    // Construire les items pour les "!" (10pts, état special)
+    const exclamItem={char:'!',pts:10,state:'special'};
 
     let scored=[];
     for(const len of [4,5,6,7,8,9]){
       for(const w of(WBL[len]||[])){
+        // Vérifier si le mot est faisable avec la main (sans les "!")
         const avail={};
         for(const it of nonJokers)avail[it.char]=(avail[it.char]||0)+1;
         let jLeft=nj;let ok=true;
@@ -633,20 +640,44 @@ function doCalc(){
         for(const c of w){
           if(avail[c]>0){
             avail[c]--;
-            // Trouver le premier item non encore utilisé avec ce char
-            const idx=hand.findIndex((it,i)=>it.char===c&&it.state!=='joker'&&!usedIdx.includes(i));
-            if(idx>=0){usedIdx.push(idx);usedItems.push(hand[idx]);}
-            else{usedItems.push({char:c,pts:PTS0[c]||1,state:'normal'});}
+            const idx=normalHand.findIndex((it,i)=>it.char===c&&it.state!=='joker'&&!usedIdx.includes(i));
+            if(idx>=0){usedIdx.push(idx);usedItems.push(normalHand[idx]);}
+            else usedItems.push({char:c,pts:PTS0[c]||1,state:'normal'});
           } else if(jLeft>0){
             jLeft--;
-            const jIdx=hand.findIndex((it,i)=>it.state==='joker'&&!usedIdx.includes(i));
-            if(jIdx>=0){usedIdx.push(jIdx);usedItems.push(hand[jIdx]);}
+            const jIdx=normalHand.findIndex((it,i)=>it.state==='joker'&&!usedIdx.includes(i));
+            if(jIdx>=0){usedIdx.push(jIdx);usedItems.push(normalHand[jIdx]);}
             else usedItems.push({char:c,pts:0,state:'joker'});
           } else {ok=false;break;}
         }
         if(!ok)continue;
-        const r=calcScore(w,usedItems);
-        scored.push({word:w,...r});
+
+        // Calcul sans "!"
+        const r0=calcScore(w,usedItems);
+        let best=r0;
+        let bestPos='';
+
+        // Si on a des "!", tester début et fin pour chaque "!" disponible
+        if(hasExclam){
+          // "!" en début de mot
+          const itemsStart=[exclamItem,...usedItems];
+          const rStart=calcScore('!'+w,itemsStart);
+          if(rStart.score>best.score){best=rStart;bestPos='! en début';}
+
+          // "!" en fin de mot
+          const itemsEnd=[...usedItems,exclamItem];
+          const rEnd=calcScore(w+'!',itemsEnd);
+          if(rEnd.score>best.score){best=rEnd;bestPos='! en fin';}
+
+          // Si 2+ "!", tester début ET fin simultanément
+          if(exclamItems.length>=2){
+            const itemsBoth=[exclamItem,...usedItems,exclamItem];
+            const rBoth=calcScore('!'+w+'!',itemsBoth);
+            if(rBoth.score>best.score){best=rBoth;bestPos='! début + fin';}
+          }
+        }
+
+        scored.push({word:w,...best,exclPos:bestPos});
       }
     }
 
@@ -659,14 +690,17 @@ function doCalc(){
     for(const r of top){
       const card=document.createElement('div');card.className='wcard';
       const bttwNote=activeBon.has('bttw')?'<span style="color:var(--coral);font-size:.52rem;"> ×2 BTTW</span>':'';
+      const exclamNote=r.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> ⭐ ${r.exclPos}</span>`:'';
+      // Afficher le mot sans le "!" ajouté
+      const displayWord=r.word;
       card.innerHTML=`
         <div class="wctop">
-          <span class="wcw">${r.word}</span>
-          <span class="wcl">${r.word.length}L</span>
+          <span class="wcw">${displayWord}</span>
+          <span class="wcl">${r.word.replace(/!/g,'').length}L</span>
           <span class="wcs">${r.score.toLocaleString('fr-FR')}</span>
           ${bttwNote}
         </div>
-        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi</div>
+        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi${exclamNote}</div>
         <div class="wctrace">${r.trace}</div>
       `;
       res.appendChild(card);
