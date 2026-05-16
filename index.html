@@ -33,7 +33,7 @@
 
     /* LAYOUT */
     .layout{display:grid;grid-template-columns:330px 1fr;min-height:calc(100vh - 108px);}
-    .layout2{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 108px);}
+    .layout2{display:grid;grid-template-columns:450px 1fr;min-height:calc(100vh - 108px);}
     @media(max-width:800px){.layout,.layout2{grid-template-columns:1fr;}}
     .pl{border-right:1px solid var(--border);padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;max-height:calc(100vh - 108px);position:sticky;top:0;}
     .pr{padding:1.2rem;overflow-y:auto;max-height:calc(100vh - 108px);}
@@ -127,7 +127,7 @@
 
     /* GAMEBAR */
     .gamebar{display:flex;gap:3px;flex-wrap:wrap;}
-    .gc{width:34px;height:38px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
+    .gc{width:40px;height:42px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
     .gc:hover{border-color:var(--border2);}
     .gc.cur{border-color:var(--accent);background:#1a2400;}
     .gc.sp5{border-color:#2a6a00;background:#0f2000;}
@@ -155,12 +155,12 @@
     .bitem.on .bname{color:var(--accent2);}
 
     /* CALC RESULTS */
-    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.7rem .9rem;margin-bottom:7px;cursor:default;transition:border-color .15s;}
+    .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.4rem .75rem;margin-bottom:4px;cursor:default;transition:border-color .15s;}
     .wcard:hover{border-color:var(--border2);}
-    .wctop{display:flex;align-items:baseline;gap:.6rem;margin-bottom:.3rem;}
-    .wcw{font-family:'Unbounded',sans-serif;font-size:.95rem;font-weight:900;color:var(--text);}
+    .wctop{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.15rem;}
+    .wcw{font-family:'Unbounded',sans-serif;font-size:.8rem;font-weight:900;color:var(--text);}
     .wcl{font-size:.55rem;color:var(--muted);}
-    .wcs{font-family:'Unbounded',sans-serif;font-size:1rem;font-weight:900;color:var(--accent);margin-left:auto;}
+    .wcs{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;color:var(--accent);margin-left:auto;}
     .wcd{font-size:.58rem;color:var(--muted);line-height:1.5;}
     .wcd span{color:var(--text);}
     .wctrace{font-size:.47rem;color:var(--muted);margin-top:3px;opacity:.65;line-height:1.5;}
@@ -273,16 +273,14 @@
 
     <!-- BARRE -->
     <div>
-      <div class="stitle">Barre de jeu (10 cases max) — cliquer sur la case actuelle</div>
+      <div class="stitle">Barre de jeu — multi permanents par case</div>
       <div class="gamebar" id="gb"></div>
       <div style="font-size:.47rem;color:var(--muted);margin-top:3px;">
-        <span style="color:var(--accent)">▶</span> pos. actuelle &nbsp;
         <span style="color:#4a9a20">●</span> case 5 verte &nbsp;
         <span style="color:var(--gold)">●</span> case 7 jaune &nbsp;
-        <span style="color:var(--teal)">●</span> case 9 énergie
+        <span style="color:var(--teal)">●</span> case 9 énergie &nbsp;
+        · clic gauche +1 multi, clic droit −1
       </div>
-      <div class="stitle" style="margin-top:.6rem;margin-bottom:.25rem;">Multi italique par case <span style="font-size:.45rem;font-weight:400;">(clic gauche +1, clic droit −1)</span></div>
-      <div class="irow" id="ir"></div>
     </div>
 
     <!-- BONUS -->
@@ -317,7 +315,7 @@ const SPEC={5:'🟢',7:'⭐',9:'⚡'};
 let WORDS=[],WBL={},loaded=false;
 const activeLens=new Set(LENS);
 let hand=[];          // [{char,pts,state}]
-let curCase=1;        // 1-indexed
+const curCase=1;      // toujours 1, fixe
 let ibonus={};        // {caseIdx: multiBonus}
 const activeBon=new Set();
 
@@ -513,29 +511,24 @@ document.getElementById('clrh').addEventListener('click',()=>{hand=[];renderHand
 // ── GAMEBAR ──
 function buildGamebar(){
   const gb=document.getElementById('gb');
-  const ir=document.getElementById('ir');
-  gb.innerHTML='';ir.innerHTML='';
+  gb.innerHTML='';
   for(let i=1;i<=NCASES;i++){
+    const ib=ibonus[i]||0;
     const c=document.createElement('div');
     let cls='gc';
-    if(i===curCase)cls+=' cur';
     if(i===5)cls+=' sp5';
     if(i===7)cls+=' sp7';
     if(i===9)cls+=' sp9';
     c.className=cls;
-    c.innerHTML=`<span class="gn">${i}</span><span class="gm">${i===curCase?'▶':i}</span><span class="ge">${SPEC[i]||''}</span>`;
-    c.title=`Case ${i}${SPEC[i]?' — case spéciale':''}`;
-    c.addEventListener('click',()=>{curCase=i;buildGamebar();});
+    c.innerHTML=`
+      <span class="gn">${i}</span>
+      <span class="ge">${SPEC[i]||''}</span>
+      <span class="gm">${ib>0?'+'+ib:'·'}</span>
+    `;
+    c.title=`Case ${i}${SPEC[i]?' — case spéciale':''} — multi accumulé: +${ib} (clic gauche +1, clic droit −1)`;
+    c.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||0)+1;buildGamebar();});
+    c.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||0)-1);buildGamebar();});
     gb.appendChild(c);
-
-    const ic=document.createElement('div');
-    const ib=ibonus[i]||0;
-    ic.className='ic'+(ib>0?' has':'');
-    ic.textContent=ib>0?'+'+ib:'·';
-    ic.title=`Case ${i} — italique accumulé: +${ib} multi (clic gauche +1, clic droit −1)`;
-    ic.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||0)+1;buildGamebar();});
-    ic.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||0)-1);buildGamebar();});
-    ir.appendChild(ic);
   }
 }
 
