@@ -193,6 +193,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.6</div>
 </header>
 
 <div class="tabs">
@@ -699,18 +700,40 @@ function doCalc(){
         let jLeft=nj;let ok=true;
         const usedIdx=[];
         const usedItems=[];
+        // Pour chaque lettre du mot, collecter TOUS les candidats de la main
+        // (peut y avoir un A gras et un A normal par ex.)
+        // On stocke tous les items possibles par char pour optimizeItemOrder
+        const allCandidates=[]; // liste de listes : pour chaque pos du mot, les items candidats
+        const availTmp={...avail};
+        let jLeftTmp=jLeft;
         for(const c of w){
-          if(avail[c]>0){
-            avail[c]--;
-            const idx=normalHand.findIndex((it,i)=>it.char===c&&it.state!=='joker'&&!usedIdx.includes(i));
-            if(idx>=0){usedIdx.push(idx);usedItems.push(normalHand[idx]);}
-            else usedItems.push({char:c,pts:PTS0[c]||1,state:'normal'});
-          } else if(jLeft>0){
-            jLeft--;
-            const jIdx=normalHand.findIndex((it,i)=>it.state==='joker'&&!usedIdx.includes(i));
-            if(jIdx>=0){usedIdx.push(jIdx);usedItems.push(normalHand[jIdx]);}
-            else usedItems.push({char:c,pts:0,state:'joker'});
+          if(availTmp[c]>0){
+            availTmp[c]--;
+            // Trouver TOUS les items non utilisés avec ce char
+            const candidates=normalHand.filter((it,i)=>it.char===c&&it.state!=='joker'&&!usedIdx.includes(i));
+            allCandidates.push(candidates.length>0?candidates:[{char:c,pts:PTS0[c]||1,state:'normal'}]);
+          } else if(jLeftTmp>0){
+            jLeftTmp--;
+            allCandidates.push([{char:c,pts:0,state:'joker'}]);
           } else {ok=false;break;}
+        }
+        if(!ok)continue;
+
+        // Construire usedItems en prenant le premier candidat disponible
+        // (optimizeItemOrder choisira ensuite le meilleur pour chaque case)
+        const usedCharCount={};
+        for(const c of w){
+          usedCharCount[c]=(usedCharCount[c]||0)+1;
+        }
+        // Trier les candidats par état pour chaque position — le meilleur en premier
+        const stateRankDC={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
+        for(const candidates of allCandidates){
+          candidates.sort((a,b)=>(stateRankDC[b.state]||0)-(stateRankDC[a.state]||0));
+          const chosen=candidates[0];
+          // Marquer comme utilisé
+          const idx=normalHand.findIndex((it,i)=>it===chosen&&!usedIdx.includes(i));
+          if(idx>=0) usedIdx.push(idx);
+          usedItems.push(chosen);
         }
         if(!ok)continue;
 
