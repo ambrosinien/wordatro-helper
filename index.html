@@ -264,7 +264,7 @@
         <span style="color:var(--bold-c)">■</span> Gras &nbsp;
         <span style="color:var(--italic-c);font-style:italic">I</span> Italique &nbsp;
         <span style="color:var(--under-c)">U̲</span> Souligné &nbsp;
-        <span style="color:var(--special-c)">!</span> Jaune &nbsp;
+        <span style="color:var(--special-c)">§</span> Jaune § &nbsp;
         <span style="color:var(--teal)">*</span> Joker
       </div>
     </div>
@@ -445,7 +445,7 @@ function renderFinder(res){
   }
 }
 
-document.getElementById('li').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*]/g,'');});
+document.getElementById('li').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*§]/g,'');});
 document.getElementById('xcl').addEventListener('click',()=>{
   ['li','sw','ct'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('jc').value=0;
@@ -471,7 +471,7 @@ function renderHand(){
     const row=document.createElement('div');row.className='hrow';
     const ch=document.createElement('div');
     ch.className='hlc st-'+it.state;
-    ch.textContent=it.state==='joker'?'*':it.char;
+    ch.textContent=it.state==='joker'?'*':it.state==='special'?'§':it.char;
 
     const pi=document.createElement('input');
     pi.className='pinp';pi.type='number';pi.min=0;pi.max=99;pi.value=it.pts;
@@ -483,14 +483,14 @@ function renderHand(){
       {k:'bold',lbl:'B',title:'Gras — effets de case ×2 (×4 avec Extra Bold)'},
       {k:'italic',lbl:'I',title:'Italique — +X multi permanent sur la case utilisée (+1 par clic)'},
       {k:'under',lbl:'U',title:'Souligné — multi cumulés ×1.5 à ce point (×2 avec Highlighted)'},
-      {k:'special',lbl:'!',title:'Lettre jaune — à positionner librement (début/fin de mot)'},
+      {k:'special',lbl:'§',title:'Lettre jaune § — à positionner librement (début/fin de mot)'},
       {k:'joker',lbl:'*',title:'Joker wildcard'},
     ];
     for(const s of states){
       const b=document.createElement('button');
       b.className='stb'+(it.state===s.k?' on-'+s.k:'');
       b.textContent=s.lbl;b.title=s.title;
-      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';renderHand();});
+      b.addEventListener('click',()=>{hand[i].state=s.k;if(s.k==='joker')hand[i].char='*';if(s.k==='special')hand[i].char='§';renderHand();});
       sb.appendChild(b);
     }
     const db=document.createElement('button');db.className='delbtn';db.textContent='✕';
@@ -502,10 +502,10 @@ function renderHand(){
 
 document.getElementById('abtn').addEventListener('click',()=>{
   const v=document.getElementById('ai').value.toUpperCase().replace(/[^A-Z*]/g,'');
-  for(const c of v)hand.push({char:c,pts:c==='*'?0:(PTS0[c]||1),state:c==='*'?'joker':'normal'});
+  for(const c of v)hand.push({char:c,pts:c==='*'?0:c==='§'?10:(PTS0[c]||1),state:c==='*'?'joker':c==='§'?'special':'normal'});
   document.getElementById('ai').value='';renderHand();
 });
-document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*]/g,'');});
+document.getElementById('ai').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z*§]/g,'');});
 document.getElementById('ai').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('abtn').click();});
 document.getElementById('clrh').addEventListener('click',()=>{hand=[];renderHand();});
 
@@ -554,15 +554,71 @@ function buildBonusGrid(){
 }
 
 // ══ CALCUL DE SCORE ══
-// FORMULE VALIDÉE (SOMME avec O gras, E souligné → 108) :
-// cum_pts  : 0 → +pts par lettre (gras = ×2, extra bold = ×3)
-// cum_multi: 0 → +1 par case + ibonus + boost(+5 toutes cases)
-//            Gras : cm doublé. Souligné : cumMulti × 1.5 après ajout.
+// caseStart = curCase : la 1ère lettre du mot tombe sur la case actuelle
+// cum_pts  : 0 → +pts par lettre (gras : pts × (1+xbFactor))
+// cum_multi: 0 → +1 par case + ibonus[case] permanent + boost + mult
+//            Gras : cm doublé (ou ×3 avec Extra Bold)
+//            Souligné : cumMulti × underF après ajout
 // score = cum_pts × cum_multi
 
+// Valeur d'une case pour une lettre donnée (pour optimiser le placement)
+function caseValue(cIdx, it){
+  const xbFactor=activeBon.has('extrabold')?2:1;
+  let cm=1;
+  if(cIdx>=1&&cIdx<=NCASES) cm+=(ibonus[cIdx]||0);
+  if(activeBon.has('boost')) cm+=5;
+  if(activeBon.has('mult')&&'MULT'.includes(it.char)) cm+=4;
+  if(it.state==='bold') cm+=cm*xbFactor;
+  // Bonus cases spéciales
+  let specialBonus=0;
+  if(cIdx===9) specialBonus=1000;
+  else if(cIdx===7) specialBonus=100;
+  else if(cIdx===5) specialBonus=10;
+  return cm+specialBonus;
+}
+
+// Optimise l'ordre des items pour placer les lettres améliorées sur les meilleures cases
+function optimizeItemOrder(items){
+  const n=items.length;
+  // Séparer lettres améliorées et normales
+  const improved=items.map((it,i)=>({it,i})).filter(x=>x.it.state!=='normal'&&x.it.state!=='joker');
+  if(improved.length===0) return items; // rien à optimiser
+
+  // Calculer la valeur de chaque case pour ce mot
+  const caseVals=[];
+  for(let i=0;i<n;i++) caseVals.push({pos:i,cIdx:curCase+i,val:caseValue(curCase+i,{char:'X',state:'normal',pts:1})});
+
+  // Trier les cases par valeur décroissante
+  const sortedCases=[...caseVals].sort((a,b)=>b.val-a.val);
+
+  // Assigner les lettres améliorées aux meilleures cases
+  const result=[...items];
+  const improvedItems=improved.map(x=>x.it);
+  const improvedPositions=improved.map(x=>x.i);
+  const bestCasePositions=sortedCases.slice(0,improvedItems.length).map(x=>x.pos).sort((a,b)=>a-b);
+
+  // Replacer les lettres améliorées sur les meilleures cases
+  // en gardant l'ordre relatif des lettres améliorées
+  improvedItems.sort((a,b)=>{
+    // Les gras en premier (plus de valeur)
+    const stateRank={bold:0,under:1,italic:2,special:3};
+    return (stateRank[a.state]||9)-(stateRank[b.state]||9);
+  });
+  bestCasePositions.forEach((pos,idx)=>{ result[pos]=improvedItems[idx]; });
+
+  // Replacer les lettres normales dans les cases restantes
+  const normalItems=items.filter((it,i)=>!improvedPositions.includes(i));
+  const remainingPos=Array.from({length:n},(_,i)=>i).filter(i=>!bestCasePositions.includes(i)).sort((a,b)=>a-b);
+  remainingPos.forEach((pos,idx)=>{ result[pos]=normalItems[idx]; });
+
+  return result;
+}
+
 function calcScore(word, items){
+  // Optimiser le placement des lettres améliorées
+  const optItems=optimizeItemOrder([...items]);
+
   const n=word.length;
-  const caseStart=curCase-n+1;
   const underF=activeBon.has('highlighted')?2.0:1.5;
   const xbFactor=activeBon.has('extrabold')?2:1;
 
@@ -571,17 +627,17 @@ function calcScore(word, items){
   const trace=[];
 
   for(let i=0;i<n;i++){
-    const cIdx=caseStart+i;
-    const it=items[i];
+    const cIdx=curCase+i; // CORRECTION : caseStart = curCase
+    const it=optItems[i];
     const isBold=(it.state==='bold');
 
     // Points
     const ptsAdd=isBold ? it.pts*(1+xbFactor) : it.pts;
     cumPts+=ptsAdd;
 
-    // Multi
+    // Multi de la case
     let cm=1;
-    if(cIdx>=1&&cIdx<=NCASES) cm+=(ibonus[cIdx]||0);
+    if(cIdx>=1&&cIdx<=NCASES) cm+=(ibonus[cIdx]||0); // multi permanent de la case
     if(activeBon.has('boost')) cm+=5;
     if(activeBon.has('mult')&&'MULT'.includes(it.char)) cm+=4;
     if(isBold) cm+=cm*xbFactor;
@@ -591,9 +647,9 @@ function calcScore(word, items){
     if(it.state==='under'){
       const before=cumMulti;
       cumMulti=Math.floor(cumMulti*underF);
-      trace.push(`${it.char}(+${ptsAdd}pts,+${cm}m×${underF}:${before}→${cumMulti})`);
+      trace.push(`${it.char}[c${cIdx}+${cm}×${underF}:${before}→${cumMulti}]`);
     } else {
-      trace.push(`${it.char}(+${ptsAdd}pts,+${cm}m→${cumMulti})`);
+      trace.push(`${it.char}[c${cIdx}+${cm}→${cumMulti}]`);
     }
   }
 
@@ -606,7 +662,11 @@ function calcScore(word, items){
   const fp=bttw?cumPts*2:cumPts;
   const fm=bttw?cumMulti*2:cumMulti;
 
-  return {pts:fp, multi:fm, score:fp*fm, trace:trace.join(' → ')};
+  // Case spéciale atteinte par la dernière lettre
+  const lastCase=curCase+n-1;
+  const specialHit=lastCase>=9?9:lastCase>=7?7:lastCase>=5?5:0;
+
+  return {pts:fp, multi:fm, score:fp*fm, trace:trace.join(' → '), lastCase, specialHit};
 }
 
 // ── FIND & CALC ──
@@ -626,7 +686,7 @@ function doCalc(){
     const hasExclam=exclamItems.length>0;
 
     // Construire les items pour les "!" (10pts, état special)
-    const exclamItem={char:'!',pts:10,state:'special'};
+    const exclamItem={char:'§',pts:10,state:'special'};
 
     let scored=[];
     for(const len of [4,5,6,7,8,9]){
@@ -681,26 +741,32 @@ function doCalc(){
       }
     }
 
-    scored.sort((a,b)=>b.score-a.score);
+    // Tri : cases spéciales en priorité, puis score
+    scored.sort((a,b)=>{
+      if(b.specialHit!==a.specialHit) return b.specialHit-a.specialHit;
+      return b.score-a.score;
+    });
     const top=scored.slice(0,60);
 
-    document.getElementById('csub').textContent=`${scored.length} mots possibles — top ${Math.min(60,scored.length)} par score estimé`;
+    document.getElementById('csub').textContent=`${scored.length} mots possibles — top ${Math.min(60,scored.length)}`;
     res.innerHTML='';
+
+    const SPEC_LBL={9:'⚡ Énergie (c9)',7:'⭐ Lettre jaune (c7)',5:'🟢 Lettre verte (c5)'};
 
     for(const r of top){
       const card=document.createElement('div');card.className='wcard';
-      const bttwNote=activeBon.has('bttw')?'<span style="color:var(--coral);font-size:.52rem;"> ×2 BTTW</span>':'';
-      const exclamNote=r.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> ⭐ ${r.exclPos}</span>`:'';
-      // Afficher le mot sans le "!" ajouté
-      const displayWord=r.word;
+      const bttwNote=activeBon.has('bttw')?'<span style="color:var(--coral);font-size:.5rem;"> ×2 BTTW</span>':'';
+      const exclamNote=r.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> § ${r.exclPos}</span>`:'';
+      const specNote=r.specialHit?`<span style="color:var(--teal);font-size:.5rem;"> ${SPEC_LBL[r.specialHit]}</span>`:'';
+      const displayWord=r.word.replace(/§/g,'');
       card.innerHTML=`
         <div class="wctop">
           <span class="wcw">${displayWord}</span>
-          <span class="wcl">${r.word.replace(/!/g,'').length}L</span>
+          <span class="wcl">${displayWord.length}L → c${r.lastCase}</span>
           <span class="wcs">${r.score.toLocaleString('fr-FR')}</span>
           ${bttwNote}
         </div>
-        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi${exclamNote}</div>
+        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi${specNote}${exclamNote}</div>
         <div class="wctrace">${r.trace}</div>
       `;
       res.appendChild(card);
