@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wordatro Helper — Trouveur de mots ODS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #0d0d0f;
+      --surface:  #16161a;
+      --border:   #2a2a32;
+      --accent:   #c8f135;
+      --accent2:  #6c63ff;
+      --text:     #e8e8f0;
+      --muted:    #6b6b80;
+      --tile-bg:  #1e1e26;
+      --gold:     #f5c842;
+      --coral:    #ff6b6b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRAIN OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.5;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 2rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .logo span {
+      color: var(--text);
+      opacity: 0.4;
+    }
+
+    .tagline {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .dict-badge {
+      margin-left: auto;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 2px;
+    }
+
+    .dict-badge strong { color: var(--accent); }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 80px);
+    }
+
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      border-right: 1px solid var(--border);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 80px);
+      overflow-y: auto;
+    }
+
+    .section-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── LETTER INPUT ── */
+    .letter-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 0.75rem;
+    }
+
+    .tile {
+      width: 40px;
+      height: 44px;
+      background: var(--tile-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      user-select: none;
+    }
+
+    .tile:hover { border-color: var(--accent); background: #22222e; }
+    .tile.selected {
+      border-color: var(--accent);
+      background: #1a2400;
+      color: var(--accent);
+    }
+    .tile.used {
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .tile .pts {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 0.45rem;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-weight: 400;
+    }
+
+    .tile.selected .pts { color: var(--accent); opacity: 0.7; }
+
+    /* ── TEXT INPUT ── */
+    .input-wrapper {
+      position: relative;
+    }
+
+    .letter-input {
+      width: 100%;
+      background: var(--tile-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Unbounded', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      padding: 0.75rem 3rem 0.75rem 1rem;
+      text-transform: uppercase;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .letter-input:focus { border-color: var(--accent); }
+    .letter-input::placeholder { color: var(--muted); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 400; }
+
+    .clear-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .clear-btn:hover { color: var(--coral); }
+
+    /* ── JOKER ── */
+    .joker-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .joker-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .joker-input {
+      width: 50px;
+      background: var(--tile-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      color: var(--gold);
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 0.4rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .joker-input:focus { border-color: var(--gold); }
+
+    /* ── FILTERS ── */
+    .filter-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      min-width: 80px;
+    }
+
+    .length-btns {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .len-btn {
+      width: 28px;
+      height: 24px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.12s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .len-btn:hover { border-color: var(--accent2); color: var(--text); }
+    .len-btn.active { background: var(--accent2); border-color: var(--accent2); color: #fff; font-weight: 700; }
+
+    .sort-select {
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      padding: 3px 6px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ── SEARCH BTN ── */
+    .search-btn {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 4px;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #0d0d0f;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .search-btn:hover { opacity: 0.85; }
+    .search-btn:active { transform: scale(0.98); }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-val {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-lbl {
+      font-size: 0.6rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .results-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .results-count {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ── WORDS GRID ── */
+    .words-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    /* Groupé par longueur */
+    .length-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .length-header {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .length-count {
+      color: var(--accent2);
+    }
+
+    .words-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .word-chip {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      padding: 5px 10px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.12s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .word-chip:hover {
+      border-color: var(--accent);
+      background: #1a2400;
+      color: var(--accent);
+    }
+
+    .word-chip:hover .word-score { color: var(--accent); }
+
+    .word-text { font-weight: 700; letter-spacing: 0.05em; }
+
+    .word-score {
+      font-size: 0.6rem;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .word-chip.high-value {
+      border-color: #3a2a00;
+    }
+
+    .word-chip.high-value .word-score { color: var(--gold); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 1rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      opacity: 0.3;
+    }
+
+    .empty-msg {
+      font-size: 0.8rem;
+      line-height: 1.6;
+      max-width: 280px;
+    }
+
+    /* ── LOADING ── */
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+      padding: 2rem 0;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── WORD DETAIL MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 90%;
+      position: relative;
+    }
+
+    .modal-word {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .modal-letters {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-tile {
+      width: 38px;
+      height: 42px;
+      background: var(--tile-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      position: relative;
+    }
+
+    .modal-tile.from-hand { border-color: var(--accent); color: var(--accent); }
+    .modal-tile.from-joker { border-color: var(--gold); color: var(--gold); }
+
+    .modal-tile .pts {
+      font-size: 0.45rem;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+    }
+
+    .modal-stats {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-stat { display: flex; flex-direction: column; gap: 3px; }
+    .modal-stat-val { font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--text); }
+    .modal-stat-lbl { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--coral); }
+
+    /* ── COPY TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: #0d0d0f;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 0.6rem 1.2rem;
+      border-radius: 3px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── INIT BAR ── */
+    .init-bar {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      z-index: 500;
+      transition: opacity 0.4s;
+    }
+    .init-bar.hidden { opacity: 0; pointer-events: none; }
+
+    .init-logo {
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 900;
+      font-size: 1.8rem;
+      color: var(--accent);
+    }
+
+    .progress-bar {
+      width: 240px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .init-msg {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- INIT SCREEN -->
+<div class="init-bar" id="initBar">
+  <div class="init-logo">WORDATRO<span style="color:var(--muted)"> //</span> HELPER</div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="init-msg" id="initMsg">Chargement du dictionnaire ODS...</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">WORDATRO<span> //</span> HELPER</div>
+  <div class="tagline">Trouveur de mots longs · ODS Scrabble FR</div>
+  <div class="dict-badge">Dictionnaire <strong>ODS8</strong> · <span id="dictCount">—</span> mots</div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <!-- LEFT -->
+  <div class="panel-left">
+
+    <!-- LETTERS -->
+    <div>
+      <div class="section-title">Tes lettres</div>
+      <div class="input-wrapper">
+        <input
+          class="letter-input"
+          id="letterInput"
+          type="text"
+          maxlength="20"
+          placeholder="ex: AEIOURTS"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="clear-btn" id="clearBtn" title="Effacer">✕</button>
+      </div>
+      <div class="letter-grid" id="letterGrid"></div>
+      <div class="joker-row">
+        <span class="joker-label">Jokers (*) :</span>
+        <input class="joker-input" id="jokerCount" type="number" min="0" max="3" value="0" />
+        <span style="font-size:0.65rem;color:var(--muted)">lettre(s) wildcard</span>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div>
+      <div class="section-title">Filtres</div>
+      <div class="filter-row">
+        <div class="filter-group">
+          <span class="filter-label">Longueur :</span>
+          <div class="length-btns" id="lengthBtns"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Trier par :</span>
+          <select class="sort-select" id="sortSelect">
+            <option value="length_desc">Longueur ↓</option>
+            <option value="length_asc">Longueur ↑</option>
+            <option value="score_desc">Score ↓</option>
+            <option value="alpha">Alphabétique</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Commence par :</span>
+          <input
+            id="startsWith"
+            type="text"
+            placeholder="ex: RE"
+            maxlength="4"
+            style="background:var(--tile-bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;padding:3px 8px;width:70px;outline:none;text-transform:uppercase;"
+          />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Contient :</span>
+          <input
+            id="contains"
+            type="text"
+            placeholder="ex: TION"
+            maxlength="6"
+            style="background:var(--tile-bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;padding:3px 8px;width:90px;outline:none;text-transform:uppercase;"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <button class="search-btn" id="searchBtn">Trouver les mots →</button>
+
+    <!-- STATS -->
+    <div>
+      <div class="section-title">Résultats</div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-val" id="statTotal">—</div>
+          <div class="stat-lbl">Mots trouvés</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="statBest">—</div>
+          <div class="stat-lbl">Meilleur score</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="statLongest">—</div>
+          <div class="stat-lbl">Plus long</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="panel-right" id="panelRight">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">⬡</div>
+      <div class="empty-msg">Entre tes lettres et clique sur <strong style="color:var(--accent)">Trouver les mots</strong> pour voir tous les mots possibles avec ta main.</div>
+    </div>
+    <div id="resultsArea" style="display:none"></div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-word" id="modalWord"></div>
+    <div class="modal-letters" id="modalLetters"></div>
+    <div class="modal-stats" id="modalStats"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">Copié !</div>
+
+<!-- WORDS DATA -->
+<script src="words.js"></script>
+
+<script>
+// ── LETTER VALUES (Scrabble FR) ──
+const PTS = {
+  A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:10,L:1,M:2,
+  N:1,O:1,P:3,Q:8,R:1,S:1,T:1,U:1,V:4,W:10,X:10,Y:10,Z:10
+};
+
+// ── INIT: parse WORDS_BLOB ──
+let WORDS = []; // all words 4-9
+let WORDS_BY_LEN = {};
+let loaded = false;
+
+function initDict() {
+  const bar = document.getElementById('initBar');
+  const fill = document.getElementById('progressFill');
+  const msg = document.getElementById('initMsg');
+
+  setTimeout(() => {
+    msg.textContent = 'Indexation des mots…';
+    fill.style.width = '30%';
+    setTimeout(() => {
+      WORDS = WORDS_BLOB.split('\n');
+      fill.style.width = '60%';
+      setTimeout(() => {
+        // Build index by length
+        for (const w of WORDS) {
+          const l = w.length;
+          if (!WORDS_BY_LEN[l]) WORDS_BY_LEN[l] = [];
+          WORDS_BY_LEN[l].push(w);
+        }
+        fill.style.width = '100%';
+        document.getElementById('dictCount').textContent = WORDS.length.toLocaleString('fr-FR');
+        loaded = true;
+        setTimeout(() => {
+          bar.classList.add('hidden');
+        }, 300);
+      }, 100);
+    }, 50);
+  }, 50);
+}
+
+// ── LENGTH FILTER BUTTONS ──
+const lengths = [4,5,6,7,8,9];
+const activeLengths = new Set(lengths);
+
+function buildLengthBtns() {
+  const container = document.getElementById('lengthBtns');
+  for (const l of lengths) {
+    const btn = document.createElement('button');
+    btn.className = 'len-btn active';
+    btn.textContent = l;
+    btn.dataset.len = l;
+    btn.addEventListener('click', () => {
+      if (activeLengths.has(l)) {
+        activeLengths.delete(l);
+        btn.classList.remove('active');
+      } else {
+        activeLengths.add(l);
+        btn.classList.add('active');
+      }
+    });
+    container.appendChild(btn);
+  }
+}
+
+// ── LETTER TILES ──
+function buildTiles(letters) {
+  const grid = document.getElementById('letterGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < letters.length; i++) {
+    const c = letters[i];
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.innerHTML = `${c}<span class="pts">${PTS[c]||'?'}</span>`;
+    grid.appendChild(tile);
+  }
+}
+
+// ── WORD SCORE ──
+function wordScore(w) {
+  return w.split('').reduce((s,c) => s + (PTS[c]||0), 0);
+}
+
+// ── SEARCH: can we form word from letters+jokers? ──
+function canForm(word, letters, jokers) {
+  const avail = {};
+  for (const c of letters) avail[c] = (avail[c]||0)+1;
+  let jokersUsed = 0;
+  for (const c of word) {
+    if (avail[c] && avail[c]>0) {
+      avail[c]--;
+    } else if (jokersUsed < jokers) {
+      jokersUsed++;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+// ── MAIN SEARCH ──
+function doSearch() {
+  if (!loaded) return;
+
+  const raw = document.getElementById('letterInput').value.toUpperCase().replace(/[^A-Z]/g,'');
+  const jokers = parseInt(document.getElementById('jokerCount').value)||0;
+  const sortMode = document.getElementById('sortSelect').value;
+  const startsWith = document.getElementById('startsWith').value.toUpperCase().replace(/[^A-Z]/g,'');
+  const contains = document.getElementById('contains').value.toUpperCase().replace(/[^A-Z]/g,'');
+
+  if (!raw && jokers === 0) return;
+
+  const letters = raw.split('');
+
+  // Filter candidates
+  let results = [];
+  for (const len of activeLengths) {
+    const candidates = WORDS_BY_LEN[len] || [];
+    for (const w of candidates) {
+      if (startsWith && !w.startsWith(startsWith)) continue;
+      if (contains && !w.includes(contains)) continue;
+      if (canForm(w, letters, jokers)) results.push(w);
+    }
+  }
+
+  // Sort
+  if (sortMode === 'length_desc') results.sort((a,b) => b.length-a.length || wordScore(b)-wordScore(a));
+  else if (sortMode === 'length_asc') results.sort((a,b) => a.length-b.length || wordScore(b)-wordScore(a));
+  else if (sortMode === 'score_desc') results.sort((a,b) => wordScore(b)-wordScore(a));
+  else results.sort();
+
+  renderResults(results, letters, jokers);
+}
+
+// ── RENDER ──
+function renderResults(results, letters, jokers) {
+  const area = document.getElementById('resultsArea');
+  const empty = document.getElementById('emptyState');
+
+  // Stats
+  document.getElementById('statTotal').textContent = results.length.toLocaleString('fr-FR');
+  if (results.length > 0) {
+    const best = Math.max(...results.map(wordScore));
+    const longest = Math.max(...results.map(w => w.length));
+    document.getElementById('statBest').textContent = best;
+    document.getElementById('statLongest').textContent = longest;
+  } else {
+    document.getElementById('statBest').textContent = '—';
+    document.getElementById('statLongest').textContent = '—';
+  }
+
+  if (results.length === 0) {
+    empty.style.display = 'flex';
+    area.style.display = 'none';
+    empty.querySelector('.empty-msg').innerHTML = 'Aucun mot trouvé avec ces lettres.<br>Essaie d\'ajouter un joker ou de modifier les filtres.';
+    return;
+  }
+
+  empty.style.display = 'none';
+  area.style.display = 'block';
+
+  // Group by length
+  const byLen = {};
+  for (const w of results) {
+    const l = w.length;
+    if (!byLen[l]) byLen[l] = [];
+    byLen[l].push(w);
+  }
+
+  const sortMode = document.getElementById('sortSelect').value;
+  const lenKeys = Object.keys(byLen).map(Number).sort((a,b) => sortMode==='length_asc'?a-b:b-a);
+
+  const avgScore = results.length > 0 ? results.reduce((s,w)=>s+wordScore(w),0)/results.length : 0;
+
+  area.innerHTML = '';
+  for (const len of lenKeys) {
+    const group = document.createElement('div');
+    group.className = 'length-group';
+
+    const header = document.createElement('div');
+    header.className = 'length-header';
+    header.innerHTML = `${len} lettres <span class="length-count">${byLen[len].length} mots</span>`;
+    group.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'words-grid';
+
+    for (const w of byLen[len]) {
+      const sc = wordScore(w);
+      const chip = document.createElement('div');
+      chip.className = 'word-chip' + (sc > avgScore*1.3 ? ' high-value' : '');
+      chip.innerHTML = `<span class="word-text">${w}</span><span class="word-score">${sc}pts</span>`;
+      chip.addEventListener('click', () => openModal(w, letters, jokers));
+      grid.appendChild(chip);
+    }
+
+    group.appendChild(grid);
+    area.appendChild(group);
+  }
+}
+
+// ── MODAL ──
+function openModal(word, letters, jokers) {
+  const avail = {};
+  for (const c of letters) avail[c] = (avail[c]||0)+1;
+
+  document.getElementById('modalWord').textContent = word;
+
+  // Letter tiles
+  const tilesEl = document.getElementById('modalLetters');
+  tilesEl.innerHTML = '';
+  let jokersUsed = 0;
+  for (const c of word) {
+    const tile = document.createElement('div');
+    if (avail[c] && avail[c]>0) {
+      tile.className = 'modal-tile from-hand';
+      avail[c]--;
+    } else {
+      tile.className = 'modal-tile from-joker';
+      jokersUsed++;
+    }
+    tile.innerHTML = `${c}<span class="pts">${PTS[c]||0}</span>`;
+    tilesEl.appendChild(tile);
+  }
+
+  // Stats
+  const sc = wordScore(word);
+  const multi = word.length >= 7 ? '×' + (word.length >= 9 ? '3' : word.length >= 8 ? '2.5' : '2') : '×1.5';
+  document.getElementById('modalStats').innerHTML = `
+    <div class="modal-stat">
+      <div class="modal-stat-val">${sc}</div>
+      <div class="modal-stat-lbl">Score base</div>
+    </div>
+    <div class="modal-stat">
+      <div class="modal-stat-val">${word.length}</div>
+      <div class="modal-stat-lbl">Lettres</div>
+    </div>
+    <div class="modal-stat">
+      <div class="modal-stat-val">${jokersUsed}</div>
+      <div class="modal-stat-lbl">Joker(s)</div>
+    </div>
+    <div class="modal-stat">
+      <div class="modal-stat-val" style="color:var(--accent2)">${multi}</div>
+      <div class="modal-stat-lbl">Bonus longueur</div>
+    </div>
+  `;
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ── EVENTS ──
+document.getElementById('letterInput').addEventListener('input', e => {
+  const val = e.target.value.toUpperCase().replace(/[^A-Z*]/g,'');
+  e.target.value = val;
+  buildTiles(val.replace(/\*/g,'').split(''));
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('letterInput').value = '';
+  document.getElementById('letterGrid').innerHTML = '';
+  document.getElementById('jokerCount').value = 0;
+  document.getElementById('startsWith').value = '';
+  document.getElementById('contains').value = '';
+  document.getElementById('emptyState').querySelector('.empty-msg').innerHTML = 'Entre tes lettres et clique sur <strong style="color:var(--accent)">Trouver les mots</strong> pour voir tous les mots possibles avec ta main.';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('statTotal').textContent = '—';
+  document.getElementById('statBest').textContent = '—';
+  document.getElementById('statLongest').textContent = '—';
+});
+
+document.getElementById('searchBtn').addEventListener('click', doSearch);
+
+document.getElementById('letterInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+});
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+});
+
+document.getElementById('startsWith').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,'');
+});
+document.getElementById('contains').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,'');
+});
+
+// ── BOOT ──
+buildLengthBtns();
+initDict();
+</script>
+</body>
+</html>
