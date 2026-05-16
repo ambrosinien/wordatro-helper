@@ -193,7 +193,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.7</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.8</div>
 </header>
 
 <div class="tabs">
@@ -852,15 +852,24 @@ function doCalc(){
       const hasVariants=variants.length>1;
       const variantBadge=hasVariants?`<span style="color:var(--bold-c);font-size:.5rem;cursor:pointer;"> ⚠️ ${variants.length} variantes</span>`:'';
 
+      // Utiliser le meilleur score parmi toutes les variantes pour l'affichage principal
+      const bestVariant=hasVariants?variants[0]:r;
+      const mainScore=bestVariant.score;
+      const mainPts=bestVariant.pts;
+      const mainMulti=bestVariant.multi;
+      const mainTrace=bestVariant.trace;
+      const mainSpec=bestVariant.specialHit?`<span style="color:var(--teal);font-size:.5rem;"> ${SPEC_LBL[bestVariant.specialHit]}</span>`:'';
+      const mainExclam=bestVariant.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> ! ${bestVariant.exclPos}</span>`:'';
+
       card.innerHTML=`
         <div class="wctop" style="cursor:${hasVariants?'pointer':'default'}">
           <span class="wcw">${displayWord}</span>
-          <span class="wcl">${displayWord.length}L → c${r.lastCase}</span>
-          <span class="wcs">${r.score.toLocaleString('fr-FR')}</span>
+          <span class="wcl">${displayWord.length}L → c${bestVariant.lastCase||r.lastCase}</span>
+          <span class="wcs">${mainScore.toLocaleString('fr-FR')}</span>
           ${bttwNote}
         </div>
-        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi${specNote}${exclamNote}${variantBadge}</div>
-        <div class="wctrace">${r.trace}</div>
+        <div class="wcd"><span>${mainPts}</span> pts × <span>${mainMulti}</span> multi${mainSpec}${mainExclam}${variantBadge}</div>
+        <div class="wctrace">${mainTrace}</div>
         ${hasVariants?`<div class="wvariants" style="display:none;margin-top:.5rem;border-top:1px solid var(--border);padding-top:.5rem;"></div>`:''}
       `;
 
