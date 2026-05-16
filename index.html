@@ -193,7 +193,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.6</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v2.7</div>
 </header>
 
 <div class="tabs">
@@ -762,8 +762,68 @@ function doCalc(){
           }
         }
 
-        scored.push({word:w,...best,exclPos:bestPos});
+        scored.push({word:w,...best,exclPos:bestPos,usedItems:[...usedItems]});
       }
+    }
+
+    // ── Générer toutes les variantes (combinaisons de lettres améliorées) ──
+    // Pour chaque mot, on a déjà le meilleur score dans scored[]
+    // Maintenant on génère les variantes alternatives pour les mots avec concurrences
+    // Une "concurrence" existe quand plusieurs états différents sont disponibles pour une même lettre
+
+    function getAllVariants(w, baseItems, hasExclam, exclamItem, exclamCount){
+      const variants=[];
+      // Trouver les positions avec plusieurs candidats (états différents)
+      const multiPos=[];
+      baseItems.forEach((it,i)=>{
+        // Chercher si une autre version de cette lettre avec état différent existe
+        const others=normalHand.filter(h=>h.char===it.char&&h.state!==it.state&&h.state!=='joker');
+        if(others.length>0) multiPos.push({pos:i,current:it,alts:others});
+      });
+
+      // Générer les combinaisons : current vs chaque alt pour chaque position concurrente
+      const combos=[baseItems.map(x=>x)]; // combo de base
+      for(const mp of multiPos){
+        const newCombos=[];
+        for(const combo of combos){
+          // variante avec l'alternative
+          for(const alt of mp.alts){
+            const v=[...combo];
+            v[mp.pos]=alt;
+            newCombos.push(v);
+          }
+        }
+        combos.push(...newCombos);
+      }
+
+      // Calculer score pour chaque combo
+      for(const combo of combos){
+        const r=calcScore(w,combo);
+        // Tester avec !
+        let best=r; let bestPos='';
+        if(hasExclam){
+          const rS=calcScore('!'+w,[exclamItem,...combo]);
+          if(rS.score>best.score){best=rS;bestPos='! début';}
+          const rE=calcScore(w+'!',[...combo,exclamItem]);
+          if(rE.score>best.score){best=rE;bestPos='! fin';}
+          if(exclamCount>=2){
+            const rB=calcScore('!'+w+'!',[exclamItem,...combo,exclamItem]);
+            if(rB.score>best.score){best=rB;bestPos='! début+fin';}
+          }
+        }
+        // Label des lettres améliorées utilisées
+        const improved=combo.filter(x=>x.state!=='normal'&&x.state!=='joker');
+        const label=improved.length>0?improved.map(x=>`${x.char} ${x.state}`).join(', '):'normal';
+        variants.push({...best,exclPos:bestPos,label});
+      }
+
+      // Dédupliquer par score+label et trier par score desc
+      const seen=new Set();
+      return variants.filter(v=>{
+        const k=v.score+'|'+v.label;
+        if(seen.has(k))return false;
+        seen.add(k);return true;
+      }).sort((a,b)=>b.score-a.score);
     }
 
     // Tri : cases spéciales en priorité, puis score
@@ -777,6 +837,7 @@ function doCalc(){
     res.innerHTML='';
 
     const SPEC_LBL={9:'⚡ Énergie (c9)',7:'⭐ Lettre jaune (c7)',5:'🟢 Lettre verte (c5)'};
+    const STATE_LBL={bold:'gras',italic:'italique',under:'souligné',yellow:'jaune',joker:'joker',normal:''};
 
     for(const r of top){
       const card=document.createElement('div');card.className='wcard';
@@ -784,16 +845,48 @@ function doCalc(){
       const exclamNote=r.exclPos?`<span style="color:var(--special-c);font-size:.5rem;"> ! ${r.exclPos}</span>`:'';
       const specNote=r.specialHit?`<span style="color:var(--teal);font-size:.5rem;"> ${SPEC_LBL[r.specialHit]}</span>`:'';
       const displayWord=r.word.replace(/!/g,'');
+
+      // Calculer les variantes pour ce mot
+      const baseItems=r.usedItems||[];
+      const variants=baseItems.length>0?getAllVariants(displayWord,baseItems,hasExclam,exclamItem,exclamItems.length):[];
+      const hasVariants=variants.length>1;
+      const variantBadge=hasVariants?`<span style="color:var(--bold-c);font-size:.5rem;cursor:pointer;"> ⚠️ ${variants.length} variantes</span>`:'';
+
       card.innerHTML=`
-        <div class="wctop">
+        <div class="wctop" style="cursor:${hasVariants?'pointer':'default'}">
           <span class="wcw">${displayWord}</span>
           <span class="wcl">${displayWord.length}L → c${r.lastCase}</span>
           <span class="wcs">${r.score.toLocaleString('fr-FR')}</span>
           ${bttwNote}
         </div>
-        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi${specNote}${exclamNote}</div>
+        <div class="wcd"><span>${r.pts}</span> pts × <span>${r.multi}</span> multi${specNote}${exclamNote}${variantBadge}</div>
         <div class="wctrace">${r.trace}</div>
+        ${hasVariants?`<div class="wvariants" style="display:none;margin-top:.5rem;border-top:1px solid var(--border);padding-top:.5rem;"></div>`:''}
       `;
+
+      // Clic pour afficher les variantes
+      if(hasVariants){
+        card.querySelector('.wctop').addEventListener('click',()=>{
+          const vDiv=card.querySelector('.wvariants');
+          if(vDiv.style.display==='none'){
+            vDiv.style.display='block';
+            vDiv.innerHTML=variants.map((v,i)=>`
+              <div style="padding:.3rem 0;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;">
+                <span style="font-size:.58rem;color:var(--muted);">#${i+1}</span>
+                <span style="font-family:'Unbounded',sans-serif;font-size:.65rem;font-weight:700;color:${i===0?'var(--accent)':'var(--text)'};">${v.score.toLocaleString('fr-FR')}</span>
+                <span style="font-size:.55rem;color:var(--muted);">${v.pts}pts × ${v.multi}m</span>
+                <span style="font-size:.55rem;color:var(--italic-c);">${v.label}</span>
+                ${v.exclPos?`<span style="font-size:.5rem;color:var(--special-c);">! ${v.exclPos}</span>`:''}
+                ${v.specialHit?`<span style="font-size:.5rem;color:var(--teal);">${SPEC_LBL[v.specialHit]}</span>`:''}
+                <div style="font-size:.45rem;color:var(--muted);width:100%;opacity:.7;">${v.trace}</div>
+              </div>
+            `).join('');
+          } else {
+            vDiv.style.display='none';
+          }
+        });
+      }
+
       res.appendChild(card);
     }
     if(scored.length===0)res.innerHTML='<div style="color:var(--muted);font-size:.65rem;padding:.5rem;">Aucun mot trouvé avec cette main.</div>';
