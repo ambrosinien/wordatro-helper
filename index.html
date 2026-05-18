@@ -209,7 +209,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.3</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.5</div>
 </header>
 
 <div class="tabs">
@@ -657,33 +657,43 @@ function caseValue(cIdx, it){
 }
 
 function optimizeItemOrder(items){
+  // Pour chaque char qui apparaît plusieurs fois dans le mot,
+  // assigner la meilleure copie (état le plus fort) à la meilleure case,
+  // et la copie normale à la case moins bonne.
   const n=items.length;
-  // Grouper par caractère — chaque item ne peut être utilisé qu'une seule fois
+  const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
+  const caseVal=(cIdx)=>{
+    let v=(ibonus[cIdx]||1);
+    if(cIdx===9)v+=100;else if(cIdx===7)v+=20;else if(cIdx===5)v+=10;
+    return v;
+  };
+
+  // Grouper les positions par char
   const byChar={};
-  items.forEach((it,i)=>{
+  items.forEach((it,pos)=>{
     const c=it.char;
     if(!byChar[c])byChar[c]=[];
-    byChar[c].push({it,origIdx:i,used:false});
+    byChar[c].push(pos);
   });
-  const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
-  const caseVal=(cIdx)=>{let v=(ibonus[cIdx]||1);if(cIdx===9)v+=100;else if(cIdx===7)v+=20;else if(cIdx===5)v+=10;return v;};
-  const result=new Array(n);
+
+  const result=[...items]; // copie de départ
 
   for(const c of Object.keys(byChar)){
-    const group=byChar[c];
-    if(group.length===1){
-      result[group[0].origIdx]=group[0].it;
-      continue;
-    }
-    // Trier les positions par valeur de case décroissante
-    const positions=group.map(x=>x.origIdx).sort((a,b)=>caseVal(curCase+b)-caseVal(curCase+a));
-    // Trier les copies disponibles par état décroissant (meilleur en premier)
-    const copies=[...group].sort((a,b)=>(stateVal[b.it.state]||0)-(stateVal[a.it.state]||0));
-    // Assigner chaque copie à une position — chaque copie n'est utilisée qu'une fois
-    positions.forEach((pos,i)=>{
-      if(copies[i]) result[pos]=copies[i].it;
+    const positions=byChar[c];
+    if(positions.length<=1)continue; // un seul exemplaire, rien à optimiser
+
+    // Trier les positions par valeur de case décroissante (meilleure case en premier)
+    const sortedPos=[...positions].sort((a,b)=>caseVal(curCase+b)-caseVal(curCase+a));
+
+    // Trier les copies disponibles pour ce char par état décroissant
+    const copies=positions.map(p=>items[p]).sort((a,b)=>(stateVal[b.state]||0)-(stateVal[a.state]||0));
+
+    // Assigner : meilleure copie → meilleure case
+    sortedPos.forEach((pos,i)=>{
+      result[pos]=copies[i];
     });
   }
+
   return result;
 }
 
@@ -831,54 +841,49 @@ function doCalc(){
     let scored=[];
     for(const len of [4,5,6,7,8,9]){
       for(const w of(WBL[len]||[])){
-        // Vérifier si le mot est faisable avec la main (sans les "!")
-        const avail={};
-        for(const it of nonJokers)avail[it.char]=(avail[it.char]||0)+1;
-        let jLeft=nj;let ok=true;
-        const usedIdx=[];
-        const usedItems=[];
-        // Pour chaque lettre du mot, collecter TOUS les candidats de la main
-        // (peut y avoir un A gras et un A normal par ex.)
-        // On stocke tous les items possibles par char pour optimizeItemOrder
-        const allCandidates=[]; // liste de listes : pour chaque pos du mot, les items candidats
-        const availTmp={...avail};
-        let jLeftTmp=jLeft;
+        // 1. Vérifier faisabilité
+        const availCheck={};
+        for(const it of nonJokers)availCheck[it.char]=(availCheck[it.char]||0)+1;
+        let ok=true; let jCheck=0;
         for(const c of w){
-          if(availTmp[c]>0){
-            availTmp[c]--;
-            // Trouver TOUS les items non utilisés avec ce char
-            const candidates=normalHand.filter((it,i)=>it.char===c&&it.state!=='joker'&&!usedIdx.includes(i));
-            allCandidates.push(candidates.length>0?candidates:[{char:c,pts:PTS0[c]||1,state:'normal'}]);
-          } else if(jLeftTmp>0){
-            jLeftTmp--;
-            allCandidates.push([{char:c,pts:0,state:'joker'}]);
-          } else {ok=false;break;}
+          if(availCheck[c]>0)availCheck[c]--;
+          else if(jCheck<nj)jCheck++;
+          else{ok=false;break;}
         }
         if(!ok)continue;
 
-        // Construire usedItems en prenant le premier candidat disponible
-        // (optimizeItemOrder choisira ensuite le meilleur pour chaque case)
-        const usedCharCount={};
+        // 2. Construire un pool d'items disponibles par char (toutes les copies)
+        const poolByChar={};
+        normalHand.forEach((it,i)=>{
+          if(it.state==='joker')return;
+          if(!poolByChar[it.char])poolByChar[it.char]=[];
+          poolByChar[it.char].push({it,i});
+        });
+
+        // 3. Pour chaque char du mot, collecter les copies disponibles
+        //    puis optimizeItemOrder choisira la meilleure pour chaque case
+        const charCount={};
+        for(const c of w) charCount[c]=(charCount[c]||0)+1;
+
+        // Construire usedItems : pour chaque position du mot,
+        // on met temporairement le meilleur item disponible pour ce char
+        // optimizeItemOrder se chargera de réassigner selon les cases
+        const usedItems=[];
+        const usedIdxTmp=[];
+        let jokersUsed=0;
         for(const c of w){
-          usedCharCount[c]=(usedCharCount[c]||0)+1;
-        }
-        // Construire usedItems en évitant de réutiliser le même index
-        const stateRankDC={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
-        const usedIdxLocal=[...usedIdx]; // copie locale pour ne pas polluer usedIdx global
-        for(const c of w){
-          // Trouver tous les candidats non encore utilisés pour ce char
-          const avail2=normalHand
-            .map((it,i)=>({it,i}))
-            .filter(x=>x.it.char===c && x.it.state!=='joker' && !usedIdxLocal.includes(x.i));
-          avail2.sort((a,b)=>(stateRankDC[b.it.state]||0)-(stateRankDC[a.it.state]||0));
-          if(avail2.length>0){
-            usedIdxLocal.push(avail2[0].i);
-            usedItems.push(avail2[0].it);
-          } else {
-            // Joker
-            const jIdx=normalHand.findIndex((it,i)=>it.state==='joker'&&!usedIdxLocal.includes(i));
-            if(jIdx>=0){usedIdxLocal.push(jIdx);usedItems.push(normalHand[jIdx]);}
-            else usedItems.push({char:c,pts:PTS0[c]||1,state:'normal'});
+          const pool=(poolByChar[c]||[]).filter(x=>!usedIdxTmp.includes(x.i));
+          if(pool.length>0){
+            // Trier par état décroissant pour le choix initial
+            pool.sort((a,b)=>{
+              const sv={bold:4,italic:3,under:2,yellow:1,normal:0};
+              return (sv[b.it.state]||0)-(sv[a.it.state]||0);
+            });
+            usedIdxTmp.push(pool[0].i);
+            usedItems.push(pool[0].it);
+          } else if(jokersUsed<nj){
+            const jIdx=normalHand.findIndex((it,idx)=>it.state==='joker'&&!usedIdxTmp.includes(idx));
+            if(jIdx>=0){usedIdxTmp.push(jIdx);usedItems.push(normalHand[jIdx]);jokersUsed++;}
           }
         }
         if(!ok)continue;
