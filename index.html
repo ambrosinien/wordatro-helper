@@ -209,7 +209,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.1</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.2</div>
 </header>
 
 <div class="tabs">
@@ -658,17 +658,31 @@ function caseValue(cIdx, it){
 
 function optimizeItemOrder(items){
   const n=items.length;
+  // Grouper par caractère — chaque item ne peut être utilisé qu'une seule fois
   const byChar={};
-  items.forEach((it,i)=>{const c=it.char;if(!byChar[c])byChar[c]=[];byChar[c].push({it,origIdx:i});});
+  items.forEach((it,i)=>{
+    const c=it.char;
+    if(!byChar[c])byChar[c]=[];
+    byChar[c].push({it,origIdx:i,used:false});
+  });
   const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
   const caseVal=(cIdx)=>{let v=(ibonus[cIdx]||1);if(cIdx===9)v+=100;else if(cIdx===7)v+=20;else if(cIdx===5)v+=10;return v;};
   const result=new Array(n);
+
   for(const c of Object.keys(byChar)){
     const group=byChar[c];
-    if(group.length===1){result[group[0].origIdx]=group[0].it;continue;}
+    if(group.length===1){
+      result[group[0].origIdx]=group[0].it;
+      continue;
+    }
+    // Trier les positions par valeur de case décroissante
     const positions=group.map(x=>x.origIdx).sort((a,b)=>caseVal(curCase+b)-caseVal(curCase+a));
+    // Trier les copies disponibles par état décroissant (meilleur en premier)
     const copies=[...group].sort((a,b)=>(stateVal[b.it.state]||0)-(stateVal[a.it.state]||0));
-    copies.forEach((x,i)=>{result[positions[i]]=x.it;});
+    // Assigner chaque copie à une position — chaque copie n'est utilisée qu'une fois
+    positions.forEach((pos,i)=>{
+      if(copies[i]) result[pos]=copies[i].it;
+    });
   }
   return result;
 }
