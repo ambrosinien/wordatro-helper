@@ -209,7 +209,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.5</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.6</div>
 </header>
 
 <div class="tabs">
@@ -920,33 +920,74 @@ function doCalc(){
 
     function getAllVariants(w, baseItems, hasExclam, exclamItem, exclamCount){
       const variants=[];
-      // Trouver les positions avec plusieurs candidats (états différents)
-      const multiPos=[];
-      baseItems.forEach((it,i)=>{
-        // Chercher si une autre version de cette lettre avec état différent existe
-        const others=normalHand.filter(h=>h.char===it.char&&h.state!==it.state&&h.state!=='joker');
-        if(others.length>0) multiPos.push({pos:i,current:it,alts:others});
+      const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0};
+
+      // Trouver les chars qui ont plusieurs copies avec des états différents
+      const charCopies={};
+      normalHand.forEach(it=>{
+        if(it.state==='joker'||it.state==='special') return;
+        if(!charCopies[it.char]) charCopies[it.char]=[];
+        if(!charCopies[it.char].find(x=>x.state===it.state))
+          charCopies[it.char].push(it);
       });
 
-      // Générer les combinaisons : current vs chaque alt pour chaque position concurrente
-      const combos=[baseItems.map(x=>x)]; // combo de base
-      for(const mp of multiPos){
-        const newCombos=[];
-        for(const combo of combos){
-          // variante avec l'alternative
-          for(const alt of mp.alts){
-            const v=[...combo];
-            v[mp.pos]=alt;
-            newCombos.push(v);
+      // Générer toutes les permutations valides d'assignation des copies aux positions
+      // Une permutation est valide si chaque copie n'est utilisée qu'une fois
+      function generateCombos(items){
+        // Grouper les positions par char
+        const byChar={};
+        items.forEach((it,pos)=>{
+          if(!byChar[it.char]) byChar[it.char]=[];
+          byChar[it.char].push(pos);
+        });
+
+        let allCombos=[items.map(x=>x)]; // combo de base
+
+        for(const c of Object.keys(byChar)){
+          const positions=byChar[c];
+          const copies=charCopies[c]||[];
+          if(positions.length<=1||copies.length<=1) continue;
+
+          // Générer toutes les permutations d'assignation des copies aux positions
+          const newAllCombos=[];
+          for(const combo of allCombos){
+            // Toutes les façons d'assigner les copies disponibles aux positions
+            // (permutations des copies sur les positions)
+            const perms=permute(copies, positions.length);
+            for(const perm of perms){
+              const v=[...combo];
+              positions.forEach((pos,i)=>{ v[pos]=perm[i]; });
+              newAllCombos.push(v);
+            }
           }
+          allCombos=newAllCombos;
         }
-        combos.push(...newCombos);
+        return allCombos;
       }
 
-      // Calculer score pour chaque combo
+      // Générer les permutations de taille k d'un tableau
+      function permute(arr, k){
+        if(k===1) return arr.map(x=>[x]);
+        const result=[];
+        for(let i=0;i<arr.length;i++){
+          const rest=arr.filter((_,j)=>j!==i);
+          // Si moins d'éléments que k, on peut réutiliser (cas normal/amélioré)
+          const sub=arr.length>=k ? permute(arr.filter((_,j)=>j!==i), k-1) : permute(arr,k-1);
+          for(const s of sub) result.push([arr[i],...s]);
+        }
+        // Dédupliquer
+        const seen=new Set();
+        return result.filter(p=>{
+          const k=p.map(x=>x.state).join('|');
+          if(seen.has(k))return false;seen.add(k);return true;
+        });
+      }
+
+      const combos=generateCombos(baseItems);
+
+      // Calculer score pour chaque combo valide
       for(const combo of combos){
         const r=calcScore(w,combo);
-        // Tester avec !
         let best=r; let bestPos='';
         if(hasExclam){
           for(let before=0;before<=exclamCount;before++){
@@ -961,7 +1002,6 @@ function doCalc(){
             if(rEx.score>best.score){best=rEx;bestPos=posLabel.trim();}
           }
         }
-        // Label des lettres améliorées utilisées
         const improved=combo.filter(x=>x.state!=='normal'&&x.state!=='joker');
         const label=improved.length>0?improved.map(x=>`${x.char} ${x.state}`).join(', '):'normal';
         variants.push({...best,exclPos:bestPos,label});
