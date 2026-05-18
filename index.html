@@ -131,12 +131,19 @@
 
     /* GAMEBAR */
     .gamebar{display:flex;gap:3px;flex-wrap:wrap;}
-    .gc{width:32px;height:36px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
+    .gc-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;}
+    .gc-arrow{width:32px;height:14px;background:none;border:none;color:var(--muted);font-size:.55rem;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .12s;padding:0;}
+    .gc-arrow:hover{background:var(--border);color:var(--text);}
+    .gc-arrow:active{background:var(--accent2);color:#fff;}
+    .gc-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;}
+    .gc-arrow{width:32px;height:12px;background:none;border:none;color:var(--muted);font-size:.45rem;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;padding:0;transition:all .12s;}
+    .gc-arrow:hover{background:var(--border2);color:var(--text);}
+    .gc-arrow:active{background:var(--accent2);color:#fff;}
+    .gc{width:32px;height:30px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;}
+
     .gc:hover{border-color:var(--border2);}
     .gc.cur{border-color:var(--accent);background:#1a2400;}
-    .gc.sp5{border-color:#2a6a00;background:#0f2000;}
-    .gc.sp7{border-color:#6a5a00;background:#221a00;}
-    .gc.sp9{border-color:#005a6a;background:#001820;}
+
     .gc .gn{font-size:.38rem;color:var(--muted);font-family:'Unbounded',sans-serif;}
     .gc .gm{font-size:.55rem;font-weight:700;color:var(--text);}
     .gc.cur .gm{color:var(--accent);}
@@ -209,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.6</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.7</div>
 </header>
 
 <div class="tabs">
@@ -297,7 +304,7 @@
         <span style="color:#4a9a20">●</span> case 5 verte &nbsp;
         <span style="color:var(--gold)">●</span> case 7 jaune &nbsp;
         <span style="color:var(--teal)">●</span> case 9 énergie &nbsp;
-        · clic gauche +1 multi, clic droit −1
+        ▲ augmenter · ▼ diminuer le multi de la case
       </div>
     </div>
 
@@ -571,21 +578,31 @@ function buildGamebar(){
   gb.innerHTML='';
   for(let i=1;i<=NCASES;i++){
     const ib=ibonus[i]||1;
+    const wrap=document.createElement('div');
+    wrap.className='gc-wrap';
+
+    const up=document.createElement('button');
+    up.className='gc-arrow';
+    up.textContent='▲';
+    up.addEventListener('click',e=>{e.stopPropagation();ibonus[i]=(ibonus[i]||1)+1;buildGamebar();});
+
     const c=document.createElement('div');
     let cls='gc';
     if(i===5)cls+=' sp5';
     if(i===7)cls+=' sp7';
     if(i===9)cls+=' sp9';
     c.className=cls;
-    c.innerHTML=`
-      <span class="gn">${i}</span>
-      <span class="ge">${SPEC[i]||''}</span>
-      <span class="gm">+${ib}</span>
-    `;
-    c.title=`Case ${i}${SPEC[i]?' — case spéciale':''} — multi accumulé: +${ib} (clic gauche +1, clic droit −1)`;
-    c.addEventListener('click',()=>{ibonus[i]=(ibonus[i]||1)+1;buildGamebar();});
-    c.addEventListener('contextmenu',e=>{e.preventDefault();ibonus[i]=Math.max(0,(ibonus[i]||1)-1);buildGamebar();});
-    gb.appendChild(c);
+    c.innerHTML=`<span class="gn">${i}${SPEC[i]||''}</span><span class="gm">+${ib}</span>`;
+
+    const dn=document.createElement('button');
+    dn.className='gc-arrow';
+    dn.textContent='▼';
+    dn.addEventListener('click',e=>{e.stopPropagation();ibonus[i]=Math.max(0,(ibonus[i]||1)-1);buildGamebar();});
+
+    wrap.appendChild(up);
+    wrap.appendChild(c);
+    wrap.appendChild(dn);
+    gb.appendChild(wrap);
   }
 }
 
