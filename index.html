@@ -216,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.7</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.8</div>
 </header>
 
 <div class="tabs">
@@ -674,41 +674,64 @@ function caseValue(cIdx, it){
 }
 
 function optimizeItemOrder(items){
-  // Pour chaque char qui apparaît plusieurs fois dans le mot,
-  // assigner la meilleure copie (état le plus fort) à la meilleure case,
-  // et la copie normale à la case moins bonne.
+  // Pour chaque char qui apparaît plusieurs fois,
+  // tester toutes les assignations possibles et garder la meilleure.
   const n=items.length;
-  const stateVal={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
-  const caseVal=(cIdx)=>{
-    let v=(ibonus[cIdx]||1);
-    if(cIdx===9)v+=100;else if(cIdx===7)v+=20;else if(cIdx===5)v+=10;
-    return v;
-  };
+  const xbFactor=activeBon.has('extrabold')?2:1;
+  const underF=activeBon.has('highlighted')?2.0:1.5;
+  const italicBonus=activeBon.has('horizontal')?5:3;
+
+  // Calculer le gain marginal d'une copie sur une case donnée
+  function caseGain(cIdx, state){
+    const base=(ibonus[cIdx]||1);
+    const specBonus=cIdx===9?100:cIdx===7?20:cIdx===5?10:0;
+    if(state==='bold') return base*(1+xbFactor) + specBonus; // gras double le multi de base
+    if(state==='italic') return base+italicBonus + specBonus; // italique ajoute fixe
+    if(state==='under') return base + specBonus; // souligné : même multi, mais ×underF après
+    return base + specBonus;
+  }
 
   // Grouper les positions par char
   const byChar={};
   items.forEach((it,pos)=>{
-    const c=it.char;
-    if(!byChar[c])byChar[c]=[];
-    byChar[c].push(pos);
+    if(!byChar[it.char])byChar[it.char]=[];
+    byChar[it.char].push(pos);
   });
 
-  const result=[...items]; // copie de départ
+  const result=[...items];
 
   for(const c of Object.keys(byChar)){
     const positions=byChar[c];
-    if(positions.length<=1)continue; // un seul exemplaire, rien à optimiser
+    if(positions.length<=1)continue;
 
-    // Trier les positions par valeur de case décroissante (meilleure case en premier)
-    const sortedPos=[...positions].sort((a,b)=>caseVal(curCase+b)-caseVal(curCase+a));
+    // Copies disponibles pour ce char
+    const copies=positions.map(p=>items[p]);
 
-    // Trier les copies disponibles pour ce char par état décroissant
-    const copies=positions.map(p=>items[p]).sort((a,b)=>(stateVal[b.state]||0)-(stateVal[a.state]||0));
+    // Tester toutes les permutations d'assignation copies→positions
+    // et garder celle qui maximise le score total
+    function permutations(arr){
+      if(arr.length<=1)return[arr];
+      const res=[];
+      arr.forEach((x,i)=>{
+        const rest=arr.filter((_,j)=>j!==i);
+        permutations(rest).forEach(p=>res.push([x,...p]));
+      });
+      return res;
+    }
 
-    // Assigner : meilleure copie → meilleure case
-    sortedPos.forEach((pos,i)=>{
-      result[pos]=copies[i];
-    });
+    let bestScore=-Infinity;
+    let bestAssign=copies;
+
+    for(const perm of permutations(copies)){
+      // Calculer le gain total de cette permutation
+      let score=0;
+      positions.forEach((pos,i)=>{
+        score+=caseGain(curCase+pos, perm[i].state);
+      });
+      if(score>bestScore){bestScore=score;bestAssign=perm;}
+    }
+
+    positions.forEach((pos,i)=>{result[pos]=bestAssign[i];});
   }
 
   return result;
