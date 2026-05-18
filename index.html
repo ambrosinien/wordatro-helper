@@ -216,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.8</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.9</div>
 </header>
 
 <div class="tabs">
@@ -737,8 +737,8 @@ function optimizeItemOrder(items){
   return result;
 }
 
-function calcScore(word, items){
-  const optItems=optimizeItemOrder([...items]);
+function calcScore(word, items, skipOptimize=false){
+  const optItems=skipOptimize?[...items]:optimizeItemOrder([...items]);
   const n=word.length;
   const wordLetters=word.replace(/!/g,'');
   const wordLen=wordLetters.length;
@@ -1027,7 +1027,7 @@ function doCalc(){
 
       // Calculer score pour chaque combo valide
       for(const combo of combos){
-        const r=calcScore(w,combo);
+        const r=calcScore(w,combo,true);
         let best=r; let bestPos='';
         if(hasExclam){
           for(let before=0;before<=exclamCount;before++){
@@ -1037,7 +1037,7 @@ function doCalc(){
             const suffix='!'.repeat(after);
             const prefItems=Array(before).fill(exclamItem);
             const sufItems=Array(after).fill(exclamItem);
-            const rEx=calcScore(prefix+w+suffix,[...prefItems,...combo,...sufItems]);
+            const rEx=calcScore(prefix+w+suffix,[...prefItems,...combo,...sufItems],true);
             const posLabel=(before>0?before+'! début ':'')+( after>0?after+'! fin':'');
             if(rEx.score>best.score){best=rEx;bestPos=posLabel.trim();}
           }
