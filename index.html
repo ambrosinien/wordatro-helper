@@ -209,7 +209,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.2</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.3</div>
 </header>
 
 <div class="tabs">
@@ -862,15 +862,24 @@ function doCalc(){
         for(const c of w){
           usedCharCount[c]=(usedCharCount[c]||0)+1;
         }
-        // Trier les candidats par état pour chaque position — le meilleur en premier
+        // Construire usedItems en évitant de réutiliser le même index
         const stateRankDC={bold:4,italic:3,under:2,yellow:1,normal:0,joker:0,special:0};
-        for(const candidates of allCandidates){
-          candidates.sort((a,b)=>(stateRankDC[b.state]||0)-(stateRankDC[a.state]||0));
-          const chosen=candidates[0];
-          // Marquer comme utilisé
-          const idx=normalHand.findIndex((it,i)=>it===chosen&&!usedIdx.includes(i));
-          if(idx>=0) usedIdx.push(idx);
-          usedItems.push(chosen);
+        const usedIdxLocal=[...usedIdx]; // copie locale pour ne pas polluer usedIdx global
+        for(const c of w){
+          // Trouver tous les candidats non encore utilisés pour ce char
+          const avail2=normalHand
+            .map((it,i)=>({it,i}))
+            .filter(x=>x.it.char===c && x.it.state!=='joker' && !usedIdxLocal.includes(x.i));
+          avail2.sort((a,b)=>(stateRankDC[b.it.state]||0)-(stateRankDC[a.it.state]||0));
+          if(avail2.length>0){
+            usedIdxLocal.push(avail2[0].i);
+            usedItems.push(avail2[0].it);
+          } else {
+            // Joker
+            const jIdx=normalHand.findIndex((it,i)=>it.state==='joker'&&!usedIdxLocal.includes(i));
+            if(jIdx>=0){usedIdxLocal.push(jIdx);usedItems.push(normalHand[jIdx]);}
+            else usedItems.push({char:c,pts:PTS0[c]||1,state:'normal'});
+          }
         }
         if(!ok)continue;
 
