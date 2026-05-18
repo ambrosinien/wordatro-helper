@@ -34,17 +34,7 @@
     #tab-finder,#tab-calc{width:100%;}
 
     /* LAYOUT */
-    @media(max-width:800px){
-      #tab-finder.active{grid-template-columns:1fr;}
-      #tab-calc.active{display:flex !important;flex-direction:column;}
-      .pl{max-height:none;position:relative;border-right:none;border-bottom:1px solid var(--border);overflow-y:visible;}
-      .pr{max-height:none;overflow-y:visible;}
-      #tab-calc .pl{height:auto;overflow:visible;display:flex;flex-direction:column;}
-      .calc-pl-top{overflow-y:visible;flex-shrink:0;}
-      .calc-pl-bonus{overflow-y:visible;max-height:none;flex:none;}
-      .calc-pl-bottom{position:relative;flex-shrink:0;background:var(--surface);}
-      #tab-calc .pr{order:99;}
-    }
+
     .pl{border-right:1px solid var(--border);padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;max-height:calc(100vh - 108px);position:sticky;top:0;}
     #tab-calc .pl{overflow-y:hidden;padding:0;}
     .calc-pl-top{padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;flex-shrink:0;}
@@ -193,7 +183,19 @@
     ::-webkit-scrollbar{width:4px;}
     ::-webkit-scrollbar-track{background:var(--bg);}
     ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-  </style>
+  
+    @media(max-width:800px){
+      #tab-finder.active{display:grid !important;grid-template-columns:1fr !important;}
+      #tab-calc.active{display:flex !important;flex-direction:column !important;height:auto !important;min-height:0 !important;}
+      #tab-calc .pl{max-height:none !important;height:auto !important;overflow:visible !important;position:relative !important;border-right:none;border-bottom:1px solid var(--border);}
+      #tab-calc .calc-pl-top{overflow-y:visible !important;flex-shrink:0;}
+      #tab-calc .calc-pl-bonus{overflow-y:visible !important;max-height:none !important;flex:none !important;}
+      #tab-calc .calc-pl-bottom{position:relative !important;flex-shrink:0;}
+      #tab-calc .pr{max-height:none !important;overflow-y:visible !important;}
+      .pl{max-height:none !important;position:relative !important;border-right:none;border-bottom:1px solid var(--border);}
+      .pr{max-height:none !important;}
+    }
+</style>
 </head>
 <body>
 
@@ -207,7 +209,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.0</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.1</div>
 </header>
 
 <div class="tabs">
