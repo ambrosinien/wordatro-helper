@@ -34,7 +34,15 @@
     #tab-finder,#tab-calc{width:100%;}
 
     /* LAYOUT */
-    @media(max-width:800px){#tab-finder.active,#tab-calc.active{grid-template-columns:1fr;}}
+    @media(max-width:800px){
+      #tab-finder.active,#tab-calc.active{grid-template-columns:1fr;grid-template-rows:auto auto;}
+      .pl{max-height:none;position:relative;border-right:none;border-bottom:1px solid var(--border);}
+      .pr{max-height:none;}
+      #tab-calc .pl{overflow-y:visible;height:auto;}
+      .calc-pl-top{overflow-y:visible;}
+      .calc-pl-bonus{overflow-y:visible;max-height:none;flex:none;}
+      .calc-pl-bottom{position:relative;background:var(--surface);}
+    }
     .pl{border-right:1px solid var(--border);padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;max-height:calc(100vh - 108px);position:sticky;top:0;}
     #tab-calc .pl{overflow-y:hidden;padding:0;}
     .calc-pl-top{padding:1.2rem;display:flex;flex-direction:column;gap:1.1rem;overflow-y:auto;flex-shrink:0;}
@@ -197,7 +205,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.8</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v3.9</div>
 </header>
 
 <div class="tabs">
