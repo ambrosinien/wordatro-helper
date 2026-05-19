@@ -216,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v4.9</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.0</div>
 </header>
 
 <div class="tabs">
@@ -325,6 +325,10 @@
           <input id="prevLen" type="number" min="0" max="20" value="0" style="width:48px;background:var(--surface2);border:1.5px solid var(--border);border-radius:3px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:.85rem;font-weight:700;text-align:center;padding:.3rem;outline:none;"/>
         </div>
         <span style="font-size:.45rem;color:var(--muted);line-height:1.4;">Déjà Vu,<br>Jumeaux, Yo-yo</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:.5rem;">
+        <button id="exportBtn" style="flex:1;padding:.4rem;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--muted);font-family:'Unbounded',sans-serif;font-size:.52rem;font-weight:700;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⬇ Exporter</button>
+        <label id="importLabel" style="flex:1;padding:.4rem;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--muted);font-family:'Unbounded',sans-serif;font-size:.52rem;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⬆ Importer<input type="file" id="importFile" accept=".json" style="display:none"/></label>
       </div>
       <button class="sbtn-calc" id="csrch">Calculer les meilleurs mots →</button>
     </div><!-- fin calc-pl-bottom -->
@@ -1136,6 +1140,59 @@ function doCalc(){
 }
 
 document.getElementById('csrch').addEventListener('click',doCalc);
+
+// ── EXPORT ──
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const situation={
+    version:'5.0',
+    timestamp:new Date().toISOString(),
+    hand:hand.map(it=>({char:it.char,pts:it.pts,state:it.state})),
+    ibonus:{...ibonus},
+    activeBonus:[...activeBon],
+    bonusVals:{...bonusVals},
+    mimicTarget:document.getElementById('mimicTarget')?.value||'',
+    prevFirst:document.getElementById('prevFirst')?.value||'',
+    prevLen:parseInt(document.getElementById('prevLen')?.value)||0,
+  };
+  const blob=new Blob([JSON.stringify(situation,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='wordatro-'+new Date().toISOString().slice(0,16).replace('T','-')+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Situation exportée !');
+});
+
+// ── IMPORT ──
+document.getElementById('importFile').addEventListener('change',e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const s=JSON.parse(ev.target.result);
+      hand=s.hand||[];
+      renderHand();
+      ibonus=s.ibonus||Object.fromEntries(Array.from({length:10},(_,i)=>[i+1,1]));
+      buildGamebar();
+      activeBon.clear();
+      (s.activeBonus||[]).forEach(id=>activeBon.add(id));
+      Object.assign(bonusVals,s.bonusVals||{});
+      buildBonusGrid();
+      if(s.prevFirst)document.getElementById('prevFirst').value=s.prevFirst;
+      if(s.prevLen)document.getElementById('prevLen').value=s.prevLen;
+      setTimeout(()=>{
+        const sel=document.getElementById('mimicTarget');
+        if(sel&&s.mimicTarget)sel.value=s.mimicTarget;
+      },100);
+      toast('Situation importée !');
+    }catch(err){toast('Erreur import JSON');console.error(err);}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+
 
 // ══ BOOT ══
 buildLBtns();
