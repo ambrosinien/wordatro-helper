@@ -6,7 +6,7 @@
   <title>Wordatro Helper</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;700;900&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg:#0d0d0f; --surface:#16161a; --surface2:#1e1e26; --border:#2a2a32; --border2:#3a3a48;
@@ -15,17 +15,17 @@
       --bold-c:#ff9f43; --italic-c:#a29bfe; --under-c:#2dd4bf; --special-c:#f5c842;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;}
+    body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;font-size:14px;}
 
     header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
-    .logo{font-family:'Unbounded',sans-serif;font-weight:900;font-size:1.2rem;color:var(--accent);}
+    .logo{font-family:'Inter',sans-serif;font-weight:900;font-size:1.3rem;color:var(--accent);}
     .logo span{color:var(--muted);}
-    .tagline{font-size:.6rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
-    .dbadge{margin-left:auto;font-size:.6rem;color:var(--muted);border:1px solid var(--border);padding:3px 8px;border-radius:2px;}
+    .tagline{font-size:.75rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;}
+    .dbadge{margin-left:auto;font-size:.75rem;color:var(--muted);border:1px solid var(--border);padding:4px 10px;border-radius:3px;}
     .dbadge strong{color:var(--accent);}
 
     .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);}
-    .tab{padding:.7rem 1.2rem;font-family:'Unbounded',sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+    .tab{padding:.75rem 1.5rem;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
     .tab:hover{color:var(--text);}
     .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
     .tab-panel{display:none !important;}
@@ -42,7 +42,7 @@
     .calc-pl-bottom{padding:.8rem 1.2rem;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);}
     .pr{padding:1.2rem;overflow-y:auto;max-height:calc(100vh - 108px);}
 
-    .stitle{font-family:'Unbounded',sans-serif;font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;}
+    .stitle{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;}
 
     /* INPUTS */
     .linput{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;color:var(--text);font-family:'Unbounded',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.18em;padding:.6rem 2.5rem .6rem .7rem;text-transform:uppercase;outline:none;transition:border-color .15s;}
@@ -70,7 +70,7 @@
     .sbtn-main{width:100%;padding:.7rem;background:var(--accent);border:none;border-radius:4px;font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0d0d0f;cursor:pointer;transition:opacity .15s,transform .1s;}
     .sbtn-main:hover{opacity:.85;}
     .sbtn-main:active{transform:scale(.98);}
-    .sbtn-calc{width:100%;padding:.7rem;background:var(--accent2);border:none;border-radius:4px;font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;cursor:pointer;transition:opacity .15s;}
+    .sbtn-calc{width:100%;padding:.75rem;background:var(--accent2);border:none;border-radius:4px;font-family:'Inter',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;cursor:pointer;transition:opacity .15s;}
     .sbtn-calc:hover{opacity:.85;}
 
     .srow{display:flex;gap:.75rem;flex-wrap:wrap;}
@@ -98,7 +98,7 @@
     .hrows{display:flex;flex-direction:column;gap:5px;}
     .hrow{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:5px 7px;transition:border-color .15s;}
     .hrow:hover{border-color:var(--border2);}
-    .hlc{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;width:24px;text-align:center;flex-shrink:0;}
+    .hlc{font-family:'Inter',sans-serif;font-size:1rem;font-weight:900;width:28px;text-align:center;flex-shrink:0;}
     .hlc.st-normal{color:var(--text);}
     .hlc.st-bold{color:var(--bold-c);}
     .hlc.st-italic{color:var(--italic-c);font-style:italic;}
@@ -144,8 +144,8 @@
     .gc:hover{border-color:var(--border2);}
     .gc.cur{border-color:var(--accent);background:#1a2400;}
 
-    .gc .gn{font-size:.38rem;color:var(--muted);font-family:'Unbounded',sans-serif;}
-    .gc .gm{font-size:.55rem;font-weight:700;color:var(--text);}
+    .gc .gn{font-size:.6rem;color:var(--muted);font-family:'Unbounded',sans-serif;}
+    .gc .gm{font-size:.7rem;font-weight:700;color:var(--text);font-family:'Inter',sans-serif;}
     .gc.cur .gm{color:var(--accent);}
     .gc .ge{font-size:.35rem;}
 
@@ -161,20 +161,20 @@
     .bitem.on{border-color:var(--accent2);background:#0f0f20;}
     .bcb{width:13px;height:13px;border:1.5px solid var(--border);border-radius:2px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:.55rem;transition:all .12s;}
     .bitem.on .bcb{background:var(--accent2);border-color:var(--accent2);color:#fff;}
-    .bname{font-family:'Unbounded',sans-serif;font-size:.58rem;font-weight:700;color:var(--text);margin-bottom:2px;}
-    .bdesc{font-size:.52rem;color:var(--muted);line-height:1.4;}
+    .bname{font-family:'Inter',sans-serif;font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+    .bdesc{font-size:.72rem;color:var(--muted);line-height:1.5;}
     .bitem.on .bname{color:var(--accent2);}
 
     /* CALC RESULTS */
     .wcard{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:.3rem .6rem;margin-bottom:2px;cursor:pointer;transition:border-color .15s;}
     .wcard:hover{border-color:var(--border2);}
     .wctop{display:flex;align-items:baseline;gap:.3rem;margin-bottom:.05rem;}
-    .wcw{font-family:'Unbounded',sans-serif;font-size:.8rem;font-weight:900;color:var(--text);}
-    .wcl{font-size:.55rem;color:var(--muted);}
-    .wcs{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;color:var(--accent);margin-left:auto;}
-    .wcd{font-size:.55rem;color:var(--muted);line-height:1.3;}
+    .wcw{font-family:'Inter',sans-serif;font-size:1rem;font-weight:900;color:var(--text);}
+    .wcl{font-size:.72rem;color:var(--muted);}
+    .wcs{font-family:'Inter',sans-serif;font-size:1rem;font-weight:900;color:var(--accent);margin-left:auto;}
+    .wcd{font-size:.75rem;color:var(--muted);line-height:1.4;}
     .wcd span{color:var(--text);}
-    .wctrace{font-size:.47rem;color:#9090a8;margin-top:3px;line-height:1.5;}
+    .wctrace{font-size:.65rem;color:#9090a8;margin-top:3px;line-height:1.5;}
 
     /* INIT */
     .ibar{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;z-index:500;transition:opacity .4s;}
@@ -216,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.0</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.1</div>
 </header>
 
 <div class="tabs">
