@@ -216,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.2</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.3</div>
 </header>
 
 <div class="tabs">
@@ -657,6 +657,18 @@ function buildBonusGrid(){
           item.querySelector('.bcb').textContent=activeBon.has(b.id)?'✓':'';
         });
       }
+      // Restaurer l'état visuel si le bonus est actif
+      if(activeBon.has(b.id)){
+        item.classList.add('on');
+        const cb=item.querySelector('.bcb');
+        if(cb) cb.textContent='✓';
+        // Afficher le select mimic si actif
+        if(b.type==='mimic'){
+          const sel=item.querySelector('#mimicTarget');
+          if(sel) sel.style.display='block';
+        }
+      }
+
       g.appendChild(item);
     }
   }
