@@ -216,7 +216,7 @@
   <div class="logo">WORDATRO<span> //</span> HELPER</div>
   <div class="tagline">Trouveur · Calculateur ODS Scrabble FR</div>
   <div class="dbadge">ODS8 · <strong id="dcnt">—</strong> mots</div>
-  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.1</div>
+  <div class="dbadge" style="color:var(--accent);border-color:var(--accent);">v5.2</div>
 </header>
 
 <div class="tabs">
@@ -1104,7 +1104,7 @@ function doCalc(){
           ${bttwNote}
         </div>
         <div class="wcd"><span>${mainPts}</span>pts × <span>${mainMulti}</span>multi${mainSpec}${mainExclam}${variantBadge}</div>
-        ${Object.keys(bestVariant.bonusUpdates||{}).length>0?`<div style="font-size:.48rem;color:var(--bold-c);margin-top:2px;">→ ${Object.entries(bestVariant.bonusUpdates).map(([k,v])=>BONUSES.find(b=>b.id===k)?.name+' : '+v).join(' · ')}</div>`:''}
+        ${Object.keys(bestVariant.bonusUpdates||{}).length>0?`<div style="font-size:.75rem;color:var(--bold-c);margin-top:4px;">→ ${Object.entries(bestVariant.bonusUpdates).map(([k,v])=>BONUSES.find(b=>b.id===k)?.name+' : '+v).join(' · ')}</div>`:''}
         <div class="wvariants" style="display:none;margin-top:.4rem;border-top:1px solid var(--border);padding-top:.4rem;"></div>
       `;
 
@@ -1117,14 +1117,14 @@ function doCalc(){
           const varHTML=hasVariants?variants.map((v,i)=>`
             <div style="padding:.2rem 0;border-bottom:1px solid var(--border);">
               <div style="display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap;">
-                <span style="font-size:.55rem;color:var(--muted);">#${i+1}</span>
+                <span style="font-size:.8rem;color:var(--muted);">#${i+1}</span>
                 <span style="font-family:'Unbounded',sans-serif;font-size:.62rem;font-weight:700;color:${i===0?'var(--accent)':'var(--text)'};">${v.score.toLocaleString('fr-FR')}</span>
-                <span style="font-size:.52rem;color:var(--muted);">${v.pts}pts × ${v.multi}m</span>
-                <span style="font-size:.52rem;color:var(--italic-c);">${v.label}</span>
+                <span style="font-size:.8rem;color:var(--muted);">${v.pts}pts × ${v.multi}m</span>
+                <span style="font-size:.8rem;color:var(--italic-c);">${v.label}</span>
                 ${v.exclPos?`<span style="font-size:.48rem;color:var(--special-c);">! ${v.exclPos}</span>`:''}
                 ${v.specialHit?`<span style="font-size:.48rem;color:var(--teal);">${SPEC_LBL[v.specialHit]}</span>`:''}
               </div>
-              <div style="font-size:.44rem;color:#9090a8;margin-top:1px;">${v.trace}</div>
+              <div style="font-size:.8rem;color:#b0b0c8;margin-top:4px;line-height:1.6;">${v.trace}</div>
             </div>
           `).join(''):`<div style="font-size:.44rem;color:#9090a8;">${mainTrace}</div>`;
           vDiv.innerHTML=varHTML;
